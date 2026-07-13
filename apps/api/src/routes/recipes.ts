@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { normalizeIngredientsToOneServing } from "@pf08/shared";
-import { cookLogs, recipes } from "../db/schema";
+import { categories, cookLogs, recipeCategories, recipes } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireCookRole } from "../lib/auth";
 import { newId, nowIso, parseJsonArray, type Env } from "../lib/crypto";
@@ -13,7 +13,10 @@ export const recipeRoutes = new Hono<{
 
 recipeRoutes.use("*", requireAuth);
 
-function serializeRecipe(r: typeof recipes.$inferSelect) {
+function serializeRecipe(
+  r: typeof recipes.$inferSelect,
+  cats: Array<{ id: string; code: string; name: string }> = [],
+) {
   return {
     id: r.id,
     familyId: r.familyId,
@@ -27,16 +30,69 @@ function serializeRecipe(r: typeof recipes.$inferSelect) {
     imageKey: r.imageKey,
     imageUrl: r.imageKey ? `/api/v1/recipes/${r.id}/image` : null,
     tags: parseJsonArray(r.tagsJson),
+    categories: cats,
     isHallOfFame: r.isHallOfFame === 1,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   };
 }
 
+async function loadCategoriesForRecipes(
+  db: ReturnType<typeof import("../db/client").createDb>,
+  recipeIds: string[],
+) {
+  const map = new Map<string, Array<{ id: string; code: string; name: string }>>();
+  if (recipeIds.length === 0) return map;
+  const rows = await db
+    .select({
+      recipeId: recipeCategories.recipeId,
+      id: categories.id,
+      code: categories.code,
+      name: categories.name,
+    })
+    .from(recipeCategories)
+    .innerJoin(categories, eq(recipeCategories.categoryId, categories.id))
+    .where(inArray(recipeCategories.recipeId, recipeIds))
+    .all();
+  for (const r of rows) {
+    const arr = map.get(r.recipeId) ?? [];
+    arr.push({ id: r.id, code: r.code, name: r.name });
+    map.set(r.recipeId, arr);
+  }
+  return map;
+}
+
+async function replaceRecipeCategories(
+  db: ReturnType<typeof import("../db/client").createDb>,
+  recipeId: string,
+  categoryIds: string[],
+) {
+  const unique = [...new Set(categoryIds.filter(Boolean))];
+  await db.delete(recipeCategories).where(eq(recipeCategories.recipeId, recipeId));
+  if (unique.length === 0) return;
+  await db.insert(recipeCategories).values(
+    unique.map((categoryId) => ({ recipeId, categoryId })),
+  );
+}
+
 recipeRoutes.get("/", async (c) => {
   const user = c.get("user");
   const q = (c.req.query("q") ?? "").trim();
+  const categoryId = (c.req.query("categoryId") ?? "").trim();
   const db = c.get("db");
+
+  let recipeIdFilter: string[] | null = null;
+  if (categoryId) {
+    const linked = await db
+      .select({ recipeId: recipeCategories.recipeId })
+      .from(recipeCategories)
+      .where(eq(recipeCategories.categoryId, categoryId))
+      .all();
+    recipeIdFilter = linked.map((x) => x.recipeId);
+    if (recipeIdFilter.length === 0) {
+      return c.json({ recipes: [] });
+    }
+  }
 
   const conds = [
     eq(recipes.familyId, user.familyId),
@@ -44,6 +100,9 @@ recipeRoutes.get("/", async (c) => {
   ];
   if (q) {
     conds.push(like(recipes.name, `%${q}%`));
+  }
+  if (recipeIdFilter) {
+    conds.push(inArray(recipes.id, recipeIdFilter));
   }
 
   const rows = await db
@@ -53,7 +112,13 @@ recipeRoutes.get("/", async (c) => {
     .orderBy(desc(recipes.updatedAt))
     .all();
 
-  return c.json({ recipes: rows.map(serializeRecipe) });
+  const catMap = await loadCategoriesForRecipes(
+    db,
+    rows.map((r) => r.id),
+  );
+  return c.json({
+    recipes: rows.map((r) => serializeRecipe(r, catMap.get(r.id) ?? [])),
+  });
 });
 
 recipeRoutes.get("/:id", async (c) => {
@@ -68,7 +133,8 @@ recipeRoutes.get("/:id", async (c) => {
   if (!row || row.isArchived === 1) {
     return c.json({ error: "レシピが見つかりません" }, 404);
   }
-  return c.json({ recipe: serializeRecipe(row) });
+  const catMap = await loadCategoriesForRecipes(db, [row.id]);
+  return c.json({ recipe: serializeRecipe(row, catMap.get(row.id) ?? []) });
 });
 
 recipeRoutes.post("/", async (c) => {
@@ -85,6 +151,7 @@ recipeRoutes.post("/", async (c) => {
     servingsLabel?: string | null;
     notes?: string | null;
     tags?: string[];
+    categoryIds?: string[];
   }>();
 
   const name = (body.name ?? "").trim();
@@ -126,8 +193,12 @@ recipeRoutes.post("/", async (c) => {
     updatedAt: ts,
   });
 
+  if (body.categoryIds) {
+    await replaceRecipeCategories(db, id, body.categoryIds);
+  }
   const row = await db.select().from(recipes).where(eq(recipes.id, id)).get();
-  return c.json({ recipe: serializeRecipe(row!) }, 201);
+  const catMap = await loadCategoriesForRecipes(db, [id]);
+  return c.json({ recipe: serializeRecipe(row!, catMap.get(id) ?? []) }, 201);
 });
 
 recipeRoutes.patch("/:id", async (c) => {
@@ -156,6 +227,7 @@ recipeRoutes.patch("/:id", async (c) => {
     notes?: string | null;
     tags?: string[];
     clearImage?: boolean;
+    categoryIds?: string[];
   }>();
 
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
@@ -210,8 +282,12 @@ recipeRoutes.patch("/:id", async (c) => {
   }
 
   await db.update(recipes).set(patch).where(eq(recipes.id, id));
+  if (body.categoryIds) {
+    await replaceRecipeCategories(db, id, body.categoryIds);
+  }
   const row = await db.select().from(recipes).where(eq(recipes.id, id)).get();
-  return c.json({ recipe: serializeRecipe(row!) });
+  const catMap = await loadCategoriesForRecipes(db, [id]);
+  return c.json({ recipe: serializeRecipe(row!, catMap.get(id) ?? []) });
 });
 
 recipeRoutes.delete("/:id", async (c) => {
@@ -251,6 +327,29 @@ recipeRoutes.delete("/:id", async (c) => {
   }
   await db.delete(recipes).where(eq(recipes.id, id));
   return c.json({ ok: true, archived: false });
+});
+
+recipeRoutes.put("/:id/categories", async (c) => {
+  const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
+  const id = c.req.param("id");
+  const db = c.get("db");
+  const existing = await db
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.id, id), eq(recipes.familyId, user.familyId)))
+    .get();
+  if (!existing || existing.isArchived === 1) {
+    return c.json({ error: "レシピが見つかりません" }, 404);
+  }
+
+  const body = await c.req.json<{ categoryIds?: string[] }>();
+  await replaceRecipeCategories(db, id, body.categoryIds ?? []);
+  await db.update(recipes).set({ updatedAt: nowIso() }).where(eq(recipes.id, id));
+  const catMap = await loadCategoriesForRecipes(db, [id]);
+  return c.json({ recipe: serializeRecipe(existing, catMap.get(id) ?? []) });
 });
 
 recipeRoutes.post("/:id/image", async (c) => {

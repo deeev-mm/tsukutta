@@ -1,13 +1,39 @@
--- Demo family seed
--- Password for demo user: demo1234
--- Hash: pbkdf2$100000$... generated at install time via seed script if needed.
--- Precomputed for password "demo1234" with fixed salt for reproducibility.
+-- Phase 1+2 seed
+-- Passwords: demo / demoreviewer / admin すべて demo1234（placeholder は gen-seed.mjs が置換）
 
+DELETE FROM recipe_categories;
+DELETE FROM cook_log_ratings;
 DELETE FROM cook_logs WHERE family_id = 'fam_demo_001';
 DELETE FROM recipes WHERE family_id = 'fam_demo_001';
-DELETE FROM sessions WHERE user_id = 'user_demo_owner';
-DELETE FROM users WHERE id = 'user_demo_owner';
+DELETE FROM sessions WHERE user_id IN ('user_demo_owner', 'user_demo_reviewer');
+DELETE FROM users WHERE family_id = 'fam_demo_001';
 DELETE FROM families WHERE id = 'fam_demo_001';
+DELETE FROM admin_sessions;
+DELETE FROM admin_audit_logs;
+DELETE FROM admin_users WHERE id = 'admin_001';
+DELETE FROM categories;
+
+INSERT INTO categories (id, code, name, sort_order, is_active, created_at, updated_at) VALUES
+('cat_rice', 'rice', 'ご飯もの', 10, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_noodle', 'noodle', '麺', 20, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_soup', 'soup', '汁物・スープ', 30, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_meat', 'meat', '肉料理', 40, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_fish', 'fish', '魚料理', 50, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_veg', 'vegetable', '野菜・サラダ', 60, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_egg', 'egg', '卵料理', 70, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_fried', 'fried', '揚げ物', 80, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_stir', 'stirfry', '炒め物', 90, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_simmer', 'simmered', '煮物', 100, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_dessert', 'dessert', 'お菓子・デザート', 110, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z'),
+('cat_other', 'other', 'その他', 200, 1, '2026-07-28T00:00:00.000Z', '2026-07-28T00:00:00.000Z');
+
+INSERT INTO admin_users (id, login_id, password_hash, created_at)
+VALUES (
+  'admin_001',
+  'admin',
+  '__DEMO_PASSWORD_HASH__',
+  '2026-07-28T00:00:00.000Z'
+);
 
 INSERT INTO families (id, name, household_size, is_suspended, is_demo, created_at, updated_at)
 VALUES (
@@ -20,15 +46,26 @@ VALUES (
   '2026-07-28T00:00:00.000Z'
 );
 
--- password: demo1234  (pbkdf2$100000$salt$hash) — placeholder replaced by seed.mjs
 INSERT INTO users (id, family_id, login_id, password_hash, display_name, role, is_active, created_at, updated_at)
-VALUES (
+VALUES
+(
   'user_demo_owner',
   'fam_demo_001',
   'demo',
   '__DEMO_PASSWORD_HASH__',
   'デモ調理者',
   'owner',
+  1,
+  '2026-07-28T00:00:00.000Z',
+  '2026-07-28T00:00:00.000Z'
+),
+(
+  'user_demo_reviewer',
+  'fam_demo_001',
+  'demoreviewer',
+  '__DEMO_PASSWORD_HASH__',
+  'デモ家族',
+  'reviewer',
   1,
   '2026-07-28T00:00:00.000Z',
   '2026-07-28T00:00:00.000Z'
@@ -55,6 +92,10 @@ INSERT INTO recipes (
   '2026-07-28T00:00:00.000Z',
   '2026-07-28T00:00:00.000Z'
 );
+
+INSERT INTO recipe_categories (recipe_id, category_id) VALUES
+('recipe_demo_nikujaga', 'cat_simmer'),
+('recipe_demo_nikujaga', 'cat_meat');
 
 INSERT INTO cook_logs (
   id, family_id, recipe_id, cooked_at, cook_note, created_by_user_id, created_at, updated_at

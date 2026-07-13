@@ -150,7 +150,57 @@ export const adminAuditLogs = sqliteTable(
   }),
 );
 
+export const categories = sqliteTable(
+  "categories",
+  {
+    id: text("id").primaryKey(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive: integer("is_active").notNull().default(1),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    codeUq: uniqueIndex("categories_code_uq").on(t.code),
+    sortIdx: index("idx_categories_sort").on(t.sortOrder, t.name),
+  }),
+);
+
+export const recipeCategories = sqliteTable(
+  "recipe_categories",
+  {
+    recipeId: text("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => categories.id),
+  },
+  (t) => ({
+    pk: uniqueIndex("recipe_categories_pk").on(t.recipeId, t.categoryId),
+    categoryIdx: index("idx_recipe_categories_category_id").on(t.categoryId),
+  }),
+);
+
+export const adminSessions = sqliteTable(
+  "admin_sessions",
+  {
+    id: text("id").primaryKey(),
+    adminUserId: text("admin_user_id")
+      .notNull()
+      .references(() => adminUsers.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => ({
+    tokenUq: uniqueIndex("admin_sessions_token_hash_uq").on(t.tokenHash),
+  }),
+);
+
 export type Family = typeof families.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;
 export type CookLog = typeof cookLogs.$inferSelect;
+export type Category = typeof categories.$inferSelect;

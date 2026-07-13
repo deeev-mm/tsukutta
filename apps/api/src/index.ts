@@ -5,8 +5,10 @@ import type { Env } from "./lib/crypto";
 import { authRoutes } from "./routes/auth";
 import { familyRoutes } from "./routes/family";
 import { recipeRoutes } from "./routes/recipes";
+import { categoryRoutes } from "./routes/categories";
 import { aiRoutes } from "./routes/ai";
 import { cookLogRoutes } from "./routes/cook-logs";
+import { adminRoutes } from "./routes/admin";
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -29,7 +31,9 @@ app.get("/api/v1/health", async (c) => {
 app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/family", familyRoutes);
 app.route("/api/v1/recipes", recipeRoutes);
+app.route("/api/v1/categories", categoryRoutes);
 app.route("/api/v1/ai", aiRoutes);
 app.route("/api/v1/cook-logs", cookLogRoutes);
+app.route("/api/v1/admin", adminRoutes);
 
 export default app;

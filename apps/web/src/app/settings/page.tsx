@@ -4,9 +4,210 @@ import { FormEvent, useEffect, useState } from "react";
 import { GROQ_API_KEY_URL } from "@pf08/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, type FamilyUser } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useGroqKey } from "@/lib/groq-key";
+
+const roleLabel: Record<string, string> = {
+  owner: "親",
+  cook: "調理者",
+  reviewer: "閲覧のみ",
+};
+
+const roleBadgeClass: Record<string, string> = {
+  owner: "badge badge-owner",
+  cook: "badge badge-cook",
+  reviewer: "badge badge-reviewer",
+};
+
+function FamilyMembers() {
+  const [members, setMembers] = useState<FamilyUser[]>([]);
+  const [busy, setBusy] = useState(true);
+  const [loginId, setLoginId] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [role, setRole] = useState<"cook" | "reviewer">("cook");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function load() {
+    setBusy(true);
+    try {
+      const { users } = await api.listFamilyUsers();
+      setMembers(users);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function onCreate(e: FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    setError("");
+    setMessage("");
+    try {
+      await api.createFamilyUser({ loginId, password, displayName, role });
+      setLoginId("");
+      setPassword("");
+      setDisplayName("");
+      setRole("cook");
+      setMessage("メンバーを追加しました");
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "追加に失敗しました");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function onToggleActive(m: FamilyUser) {
+    setError("");
+    try {
+      await api.patchFamilyUser(m.id, { isActive: !m.isActive });
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "更新に失敗しました");
+    }
+  }
+
+  async function onChangeRole(m: FamilyUser, next: "cook" | "reviewer") {
+    setError("");
+    try {
+      await api.patchFamilyUser(m.id, { role: next });
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "更新に失敗しました");
+    }
+  }
+
+  return (
+    <div className="panel" style={{ marginTop: 16 }}>
+      <h2>家族のメンバー</h2>
+      <p className="hint" style={{ marginBottom: 12 }}>
+        調理者（レシピ登録・記録）または閲覧のみ（評価・コメントのみ可）のアカウントを追加できます。
+      </p>
+
+      {busy ? (
+        <p className="muted loading-dot">読み込み中…</p>
+      ) : members.length === 0 ? (
+        <p className="hint">まだメンバーがいません</p>
+      ) : (
+        <ul className="clean stack" style={{ marginBottom: 18 }}>
+          {members.map((m) => (
+            <li
+              key={m.id}
+              className="row"
+              style={{
+                justifyContent: "space-between",
+                border: "1px solid var(--line)",
+                borderRadius: 12,
+                padding: "10px 12px",
+              }}
+            >
+              <div>
+                <div className="row" style={{ gap: 8 }}>
+                  <strong>{m.displayName}</strong>
+                  <span className={roleBadgeClass[m.role] ?? "badge"}>
+                    {roleLabel[m.role] ?? m.role}
+                  </span>
+                  {!m.isActive ? (
+                    <span className="badge badge-danger">無効</span>
+                  ) : null}
+                </div>
+                <div className="hint">{m.loginId}</div>
+              </div>
+              <div className="row">
+                {m.role !== "owner" ? (
+                  <select
+                    value={m.role}
+                    onChange={(e) =>
+                      void onChangeRole(m, e.target.value as "cook" | "reviewer")
+                    }
+                    style={{
+                      border: "1px solid var(--line)",
+                      borderRadius: 10,
+                      padding: "6px 8px",
+                      background: "rgba(255,255,255,0.85)",
+                    }}
+                  >
+                    <option value="cook">調理者</option>
+                    <option value="reviewer">閲覧のみ</option>
+                  </select>
+                ) : null}
+                {m.role !== "owner" ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => void onToggleActive(m)}
+                  >
+                    {m.isActive ? "無効化" : "有効化"}
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={onCreate}>
+        <h3 style={{ fontFamily: "var(--font-display)", marginBottom: 10 }}>
+          メンバーを追加
+        </h3>
+        <div className="field">
+          <label htmlFor="newLoginId">ログインID</label>
+          <input
+            id="newLoginId"
+            value={loginId}
+            onChange={(e) => setLoginId(e.target.value)}
+            minLength={2}
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="newPassword">パスワード（4文字以上）</label>
+          <input
+            id="newPassword"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={4}
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="newDisplayName">表示名</label>
+          <input
+            id="newDisplayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="例: おばあちゃん"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="newRole">ロール</label>
+          <select
+            id="newRole"
+            value={role}
+            onChange={(e) => setRole(e.target.value as "cook" | "reviewer")}
+          >
+            <option value="cook">調理者（レシピ登録・記録ができる）</option>
+            <option value="reviewer">閲覧のみ（評価・コメントのみ）</option>
+          </select>
+        </div>
+        {error ? <p className="error">{error}</p> : null}
+        {message ? <p className="hint">{message}</p> : null}
+        <button className="btn" disabled={creating}>
+          {creating ? "追加中…" : "追加する"}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   return (
@@ -83,6 +284,8 @@ function SettingsInner() {
         {user?.displayName}（{user?.loginId}）・ロール: {user?.role}
         {user?.isDemo ? " ・デモ Family" : ""}
       </p>
+
+      {user?.role === "owner" ? <FamilyMembers /> : null}
 
       <form className="panel" style={{ marginTop: 16 }} onSubmit={onSaveFamily}>
         <h2>家族構成</h2>

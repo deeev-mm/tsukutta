@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
-import { cookLogs, recipes } from "../db/schema";
+import { cookLogs, cookLogRatings, recipes, users } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireCookRole } from "../lib/auth";
 import { newId, nowIso, todayYmd, type Env } from "../lib/crypto";
@@ -220,4 +220,111 @@ cookLogRoutes.delete("/:id", async (c) => {
 
   await db.delete(cookLogs).where(eq(cookLogs.id, id));
   return c.json({ ok: true });
+});
+
+cookLogRoutes.put("/:id/ratings", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = c.get("db");
+
+  const log = await db
+    .select()
+    .from(cookLogs)
+    .where(and(eq(cookLogs.id, id), eq(cookLogs.familyId, user.familyId)))
+    .get();
+  if (!log) return c.json({ error: "記録が見つかりません" }, 404);
+
+  const body = await c.req.json<{ rating?: number | null; comment?: string | null }>();
+  let rating: number | null = null;
+  if (body.rating !== undefined && body.rating !== null) {
+    const n = Math.floor(Number(body.rating));
+    if (n < 1 || n > 5) {
+      return c.json({ error: "評価は1〜5で入力してください" }, 400);
+    }
+    rating = n;
+  }
+  const comment = body.comment?.trim() || null;
+  if (rating == null && !comment) {
+    return c.json({ error: "★またはコメントのいずれかを入力してください" }, 400);
+  }
+
+  const ts = nowIso();
+  const existing = await db
+    .select()
+    .from(cookLogRatings)
+    .where(
+      and(eq(cookLogRatings.cookLogId, id), eq(cookLogRatings.userId, user.id)),
+    )
+    .get();
+
+  if (existing) {
+    await db
+      .update(cookLogRatings)
+      .set({
+        rating: rating ?? existing.rating,
+        comment: body.comment !== undefined ? comment : existing.comment,
+        updatedAt: ts,
+      })
+      .where(eq(cookLogRatings.id, existing.id));
+  } else {
+    await db.insert(cookLogRatings).values({
+      id: newId(),
+      cookLogId: id,
+      userId: user.id,
+      rating,
+      comment,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
+  const row = await db
+    .select()
+    .from(cookLogRatings)
+    .where(
+      and(eq(cookLogRatings.cookLogId, id), eq(cookLogRatings.userId, user.id)),
+    )
+    .get();
+
+  return c.json({
+    rating: {
+      id: row!.id,
+      cookLogId: row!.cookLogId,
+      userId: row!.userId,
+      rating: row!.rating,
+      comment: row!.comment,
+      createdAt: row!.createdAt,
+      updatedAt: row!.updatedAt,
+    },
+  });
+});
+
+cookLogRoutes.get("/:id/ratings", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = c.get("db");
+  const log = await db
+    .select()
+    .from(cookLogs)
+    .where(and(eq(cookLogs.id, id), eq(cookLogs.familyId, user.familyId)))
+    .get();
+  if (!log) return c.json({ error: "記録が見つかりません" }, 404);
+
+  const rows = await db
+    .select({
+      id: cookLogRatings.id,
+      cookLogId: cookLogRatings.cookLogId,
+      userId: cookLogRatings.userId,
+      displayName: users.displayName,
+      rating: cookLogRatings.rating,
+      comment: cookLogRatings.comment,
+      createdAt: cookLogRatings.createdAt,
+      updatedAt: cookLogRatings.updatedAt,
+    })
+    .from(cookLogRatings)
+    .innerJoin(users, eq(cookLogRatings.userId, users.id))
+    .where(eq(cookLogRatings.cookLogId, id))
+    .all();
+
+  return c.json({ ratings: rows });
 });

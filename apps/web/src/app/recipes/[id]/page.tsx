@@ -95,16 +95,30 @@ function DetailInner() {
         </p>
       ) : null}
 
+      {recipe.categories.length > 0 ? (
+        <div className="chip-row" style={{ marginBottom: 8 }}>
+          {recipe.categories.map((c) => (
+            <span key={c.id} className="chip">
+              {c.name}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       <div className="row" style={{ margin: "16px 0" }}>
-        <Link href={`/recipes/${recipe.id}/edit`} className="btn btn-secondary">
-          編集
-        </Link>
-        <Link href={`/cook/new?recipeId=${recipe.id}`} className="btn">
-          作った
-        </Link>
-        <button type="button" className="btn btn-secondary" onClick={onDelete}>
-          削除
-        </button>
+        {user?.role !== "reviewer" ? (
+          <>
+            <Link href={`/recipes/${recipe.id}/edit`} className="btn btn-secondary">
+              編集
+            </Link>
+            <Link href={`/cook/new?recipeId=${recipe.id}`} className="btn">
+              作った
+            </Link>
+            <button type="button" className="btn btn-secondary" onClick={onDelete}>
+              削除
+            </button>
+          </>
+        ) : null}
       </div>
 
       <section className="panel" style={{ marginBottom: 14 }}>

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GROQ_API_KEY_URL } from "@pf08/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, type Category } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { useGroqKey } from "@/lib/groq-key";
 
 type Draft = {
@@ -37,6 +38,7 @@ export default function NewRecipePage() {
 
 function NewRecipeInner() {
   const { hasKey } = useGroqKey();
+  const { user } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<"paste" | "preview">("paste");
@@ -45,8 +47,20 @@ function NewRecipeInner() {
   const [agreed, setAgreed] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [file, setFile] = useState<File | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void api.listCategories().then(({ categories }) => setCategories(categories));
+  }, []);
+
+  function toggleCategory(id: string) {
+    setCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  }
 
   const canFormat = useMemo(() => {
     if (!rawText.trim() || !agreed || !hasKey) return false;
@@ -97,6 +111,7 @@ function NewRecipeInner() {
           .map((s) => s.trim())
           .filter(Boolean),
         notes: draft.notes || null,
+        categoryIds,
       });
       if (file) {
         await api.uploadImage(recipe.id, file);
@@ -107,6 +122,18 @@ function NewRecipeInner() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (user?.role === "reviewer") {
+    return (
+      <AppShell title="レシピ作成">
+        <h1 style={{ marginTop: 12 }}>レシピを残す</h1>
+        <p className="hint">閲覧のみのアカウントではレシピを作成できません。</p>
+        <Link href="/recipes" className="btn btn-secondary">
+          レシピ一覧へ
+        </Link>
+      </AppShell>
+    );
   }
 
   return (
@@ -247,6 +274,32 @@ function NewRecipeInner() {
               onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
             />
           </div>
+          {categories.length > 0 ? (
+            <div className="field">
+              <label>カテゴリ（任意・複数選択可）</label>
+              <div className="chip-row">
+                {categories.map((c) => (
+                  <label
+                    key={c.id}
+                    className="chip-checkbox"
+                    style={
+                      categoryIds.includes(c.id)
+                        ? { background: "rgba(31,107,92,0.14)", borderColor: "var(--teal)" }
+                        : undefined
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.includes(c.id)}
+                      onChange={() => toggleCategory(c.id)}
+                      style={{ margin: 0 }}
+                    />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="field">
             <label htmlFor="image">サムネイル（任意・1枚）</label>
             <input

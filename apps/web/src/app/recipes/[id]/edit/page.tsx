@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { api, ApiError, type Recipe } from "@/lib/api";
+import { api, ApiError, type Category, type Recipe } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { scaleIngredients } from "@pf08/shared";
 
@@ -29,6 +30,8 @@ function EditInner() {
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [clearImage, setClearImage] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -43,8 +46,19 @@ function EditInner() {
       setIngredientsText(scaleIngredients(recipe.ingredients, servings).join("\n"));
       setInstructionsText(recipe.instructions.join("\n"));
       setNotes(recipe.notes ?? "");
+      setCategoryIds(recipe.categories.map((c) => c.id));
     })();
   }, [params.id, user?.householdSize]);
+
+  useEffect(() => {
+    void api.listCategories().then(({ categories }) => setCategories(categories));
+  }, []);
+
+  function toggleCategory(id: string) {
+    setCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  }
 
   async function onSave(e: FormEvent) {
     e.preventDefault();
@@ -66,6 +80,7 @@ function EditInner() {
           .filter(Boolean),
         notes: notes || null,
         clearImage: clearImage || undefined,
+        categoryIds,
       });
       if (file) await api.uploadImage(recipe.id, file);
       router.replace(`/recipes/${recipe.id}`);
@@ -80,6 +95,18 @@ function EditInner() {
     return (
       <AppShell>
         <p className="muted loading-dot">読み込み中…</p>
+      </AppShell>
+    );
+  }
+
+  if (user?.role === "reviewer") {
+    return (
+      <AppShell title="レシピ編集">
+        <h1 style={{ marginTop: 12 }}>編集</h1>
+        <p className="hint">閲覧のみのアカウントではレシピを編集できません。</p>
+        <Link href={`/recipes/${recipe.id}`} className="btn btn-secondary">
+          レシピに戻る
+        </Link>
       </AppShell>
     );
   }
@@ -135,6 +162,32 @@ function EditInner() {
           <label htmlFor="notes">定番メモ</label>
           <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
+        {categories.length > 0 ? (
+          <div className="field">
+            <label>カテゴリ（任意・複数選択可）</label>
+            <div className="chip-row">
+              {categories.map((c) => (
+                <label
+                  key={c.id}
+                  className="chip-checkbox"
+                  style={
+                    categoryIds.includes(c.id)
+                      ? { background: "rgba(31,107,92,0.14)", borderColor: "var(--teal)" }
+                      : undefined
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={categoryIds.includes(c.id)}
+                    onChange={() => toggleCategory(c.id)}
+                    style={{ margin: 0 }}
+                  />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="field">
           <label htmlFor="image">サムネ差し替え（任意）</label>
           <input

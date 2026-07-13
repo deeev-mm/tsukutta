@@ -9,6 +9,7 @@ import { sha256Hex } from "./crypto";
 
 export type AppVariables = {
   user: SessionUser;
+  admin?: { id: string; loginId: string };
   db: ReturnType<typeof createDb>;
 };
 
@@ -81,5 +82,10 @@ export function canCook(role: SessionUser["role"]): boolean {
 
 export function requireCookRole(user: SessionUser): string | null {
   if (!canCook(user.role)) return "調理権限がありません";
+  return null;
+}
+
+export function requireOwnerRole(user: SessionUser): string | null {
+  if (user.role !== "owner") return "親ユーザーのみ操作できます";
   return null;
 }

@@ -41,6 +41,14 @@ async function request<T>(
   return data as T;
 }
 
+export type Category = {
+  id: string;
+  code: string;
+  name: string;
+  sortOrder: number;
+  isActive?: boolean;
+};
+
 export type Recipe = {
   id: string;
   familyId: string;
@@ -54,9 +62,64 @@ export type Recipe = {
   imageKey: string | null;
   imageUrl: string | null;
   tags: string[];
+  categories: Category[];
   isHallOfFame: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type FamilyUser = {
+  id: string;
+  loginId: string;
+  displayName: string;
+  role: "owner" | "cook" | "reviewer";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CookLogRating = {
+  id: string;
+  cookLogId: string;
+  userId: string;
+  displayName?: string;
+  rating: number | null;
+  comment: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminInfo = { id: string; loginId: string };
+
+export type AdminFamily = {
+  id: string;
+  name: string | null;
+  householdSize: number;
+  isSuspended: boolean;
+  isDemo: boolean;
+  createdAt: string;
+  userCount?: number;
+  recipeCount?: number;
+};
+
+export type AdminUser = {
+  id: string;
+  loginId: string;
+  displayName: string;
+  role: string;
+  isActive: boolean;
+  familyId: string;
+  familyName: string;
+};
+
+export type AdminAuditLog = {
+  id: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  detailJson: string | null;
+  createdAt: string;
+  adminLoginId: string;
 };
 
 export type CookLog = {
@@ -114,10 +177,15 @@ export const api = {
       };
     }>("/api/v1/family", { method: "PATCH", json: body }),
 
-  listRecipes: (q?: string) =>
-    request<{ recipes: Recipe[] }>(
-      `/api/v1/recipes${q ? `?q=${encodeURIComponent(q)}` : ""}`,
-    ),
+  listRecipes: (q?: string, categoryId?: string) => {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (categoryId) sp.set("categoryId", categoryId);
+    const s = sp.toString();
+    return request<{ recipes: Recipe[] }>(
+      `/api/v1/recipes${s ? `?${s}` : ""}`,
+    );
+  },
   getRecipe: (id: string) =>
     request<{ recipe: Recipe }>(`/api/v1/recipes/${id}`),
   createRecipe: (body: Record<string, unknown>) =>
@@ -132,6 +200,40 @@ export const api = {
     }),
   deleteRecipe: (id: string) =>
     request<{ ok: boolean }>(`/api/v1/recipes/${id}`, { method: "DELETE" }),
+  putRecipeCategories: (id: string, categoryIds: string[]) =>
+    request<{ recipe: Recipe }>(`/api/v1/recipes/${id}/categories`, {
+      method: "PUT",
+      json: { categoryIds },
+    }),
+
+  listCategories: () =>
+    request<{ categories: Category[] }>("/api/v1/categories"),
+
+  listFamilyUsers: () =>
+    request<{ users: FamilyUser[] }>("/api/v1/family/users"),
+  createFamilyUser: (body: {
+    loginId: string;
+    password: string;
+    displayName?: string;
+    role: "cook" | "reviewer";
+  }) =>
+    request<{ user: FamilyUser }>("/api/v1/family/users", {
+      method: "POST",
+      json: body,
+    }),
+  patchFamilyUser: (
+    id: string,
+    body: {
+      displayName?: string;
+      role?: "cook" | "reviewer";
+      isActive?: boolean;
+      password?: string;
+    },
+  ) =>
+    request<{ user: FamilyUser }>(`/api/v1/family/users/${id}`, {
+      method: "PATCH",
+      json: body,
+    }),
 
   uploadImage: async (id: string, file: File) => {
     const form = new FormData();
@@ -199,6 +301,94 @@ export const api = {
     }),
   deleteCookLog: (id: string) =>
     request<{ ok: boolean }>(`/api/v1/cook-logs/${id}`, { method: "DELETE" }),
+
+  listCookLogRatings: (id: string) =>
+    request<{ ratings: CookLogRating[] }>(`/api/v1/cook-logs/${id}/ratings`),
+  upsertCookLogRating: (
+    id: string,
+    body: { rating?: number | null; comment?: string | null },
+  ) =>
+    request<{ rating: CookLogRating }>(`/api/v1/cook-logs/${id}/ratings`, {
+      method: "PUT",
+      json: body,
+    }),
+
+  // --- Admin ---
+  adminLogin: (loginId: string, password: string) =>
+    request<{ admin: AdminInfo }>("/api/v1/admin/auth/login", {
+      method: "POST",
+      json: { loginId, password },
+    }),
+  adminLogout: () =>
+    request<{ ok: boolean }>("/api/v1/admin/auth/logout", { method: "POST" }),
+  adminMe: () => request<{ admin: AdminInfo }>("/api/v1/admin/auth/me"),
+  adminDashboard: () =>
+    request<{
+      counts: {
+        families: number;
+        users: number;
+        recipes: number;
+        cookLogs: number;
+        ratings: number;
+      };
+      recentFamilies: AdminFamily[];
+    }>("/api/v1/admin/dashboard"),
+  adminHealth: () =>
+    request<{ ok: boolean; db: boolean }>("/api/v1/admin/health"),
+  adminListFamilies: (q?: string) =>
+    request<{ families: AdminFamily[] }>(
+      `/api/v1/admin/families${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    ),
+  adminGetFamily: (id: string) =>
+    request<{ family: AdminFamily; members: FamilyUser[] }>(
+      `/api/v1/admin/families/${id}`,
+    ),
+  adminSuspendFamily: (id: string) =>
+    request<{ ok: boolean }>(`/api/v1/admin/families/${id}/suspend`, {
+      method: "POST",
+    }),
+  adminResumeFamily: (id: string) =>
+    request<{ ok: boolean }>(`/api/v1/admin/families/${id}/resume`, {
+      method: "POST",
+    }),
+  adminListUsers: (q?: string) =>
+    request<{ users: AdminUser[] }>(
+      `/api/v1/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    ),
+  adminDisableUser: (id: string) =>
+    request<{ ok: boolean }>(`/api/v1/admin/users/${id}/disable`, {
+      method: "POST",
+    }),
+  adminEnableUser: (id: string) =>
+    request<{ ok: boolean }>(`/api/v1/admin/users/${id}/enable`, {
+      method: "POST",
+    }),
+  adminResetPassword: (id: string) =>
+    request<{ ok: boolean; temporaryPassword: string }>(
+      `/api/v1/admin/users/${id}/reset-password`,
+      { method: "POST" },
+    ),
+  adminAuditLogs: () =>
+    request<{ auditLogs: AdminAuditLog[] }>("/api/v1/admin/audit-logs"),
+  adminListCategories: () =>
+    request<{ categories: Category[] }>("/api/v1/admin/categories"),
+  adminCreateCategory: (body: {
+    code: string;
+    name: string;
+    sortOrder?: number;
+  }) =>
+    request<{ category: Category }>("/api/v1/admin/categories", {
+      method: "POST",
+      json: body,
+    }),
+  adminPatchCategory: (
+    id: string,
+    body: { name?: string; sortOrder?: number; isActive?: boolean },
+  ) =>
+    request<{ category: Category }>(`/api/v1/admin/categories/${id}`, {
+      method: "PATCH",
+      json: body,
+    }),
 
   imageSrc: (imageUrl: string | null | undefined) => {
     if (!imageUrl) return null;

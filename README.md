@@ -6,7 +6,7 @@
 調理者向けに、レシピ本文・サムネ・メモの保存と編集も持たせる Web アプリです。  
 ユーザーは **家族単位** で増え、親ユーザー（Owner）は最初から調理者としても使えます。
 
-詳細仕様（正） [docs/SPEC.md](./docs/SPEC.md)（v0.6.1）  
+詳細仕様（正） [docs/SPEC.md](./docs/SPEC.md)（v0.6.2）  
 提案書 [docs/PROPOSAL_FOR_NON_ENGINEERS.md](./docs/PROPOSAL_FOR_NON_ENGINEERS.md)
 
 ---
@@ -73,12 +73,8 @@ Phase 2: 親が家族アカウントを発行（追加 Cook / Reviewer）
 ### デモ Family
 
 シードでデモ家族を用意しています。  
-デモでも **レシピ新規作成（AI）まで操作可**（Groq キーは設定画面で localStorage に保存）。
-
-```text
-login_id: demo
-password: demo1234
-```
+デモでも **レシピ新規作成（AI）まで操作可**（Groq キーは設定画面で localStorage に保存）。  
+ログイン情報は下の「デモログイン」を参照。
 
 ---
 
@@ -104,6 +100,18 @@ password: demo1234
 ### Phase 3 — 見返し
 
 - ランキング・殿堂入り・おすすめ
+
+---
+
+## デモログイン
+
+| 用途 | login_id | password |
+|---|---|---|
+| デモ Owner（調理） | `demo` | `demo1234` |
+| デモ Reviewer（評価） | `demoreviewer` | `demo1234` |
+| Admin | `admin` | `demo1234` |
+
+Admin UI: http://localhost:3000/admin/login
 
 ---
 

@@ -31,6 +31,9 @@ export default function LandingPage() {
             親ユーザー登録
           </Link>
         </div>
+        <p style={{ marginTop: 32, opacity: 0.6, fontSize: "0.78rem" }}>
+          <Link href="/admin/login">管理者ログイン</Link>
+        </p>
       </div>
     </div>
   );

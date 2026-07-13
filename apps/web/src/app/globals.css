@@ -238,3 +238,119 @@ ul.clean {
 .loading-dot {
   animation: softPulse 1.2s ease infinite;
 }
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(31, 107, 92, 0.1);
+  color: var(--teal-deep);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.chip-muted {
+  background: rgba(20, 35, 31, 0.06);
+  color: var(--ink-muted);
+}
+
+.chip-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(20, 35, 31, 0.08);
+  color: var(--ink-muted);
+}
+
+.badge-owner {
+  background: rgba(196, 92, 38, 0.14);
+  color: var(--amber);
+}
+
+.badge-cook {
+  background: rgba(31, 107, 92, 0.14);
+  color: var(--teal-deep);
+}
+
+.badge-reviewer {
+  background: rgba(20, 35, 31, 0.08);
+  color: var(--ink-muted);
+}
+
+.badge-ok {
+  background: rgba(31, 107, 92, 0.14);
+  color: var(--teal-deep);
+}
+
+.badge-danger {
+  background: rgba(163, 59, 59, 0.14);
+  color: var(--danger);
+}
+
+.stars {
+  display: inline-flex;
+  gap: 2px;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--line);
+}
+
+.stars-filled {
+  color: var(--amber);
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--line);
+}
+
+.star-btn.on {
+  color: var(--amber);
+}
+
+table.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+table.admin-table th,
+table.admin-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+table.admin-table th {
+  color: var(--ink-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+}

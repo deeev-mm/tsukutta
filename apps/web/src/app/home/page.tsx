@@ -41,12 +41,25 @@ function HomeInner() {
       </section>
 
       <div className="stack" style={{ marginBottom: 28 }}>
-        <Link href="/recipes/new" className="btn btn-block">
-          レシピを残す
-        </Link>
-        <Link href="/cook/new" className="btn btn-secondary btn-block">
-          今日作った
-        </Link>
+        {user?.role === "reviewer" ? (
+          <>
+            <Link href="/timeline" className="btn btn-block">
+              記録を見て評価する
+            </Link>
+            <Link href="/recipes" className="btn btn-secondary btn-block">
+              レシピを見る
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href="/recipes/new" className="btn btn-block">
+              レシピを残す
+            </Link>
+            <Link href="/cook/new" className="btn btn-secondary btn-block">
+              今日作った
+            </Link>
+          </>
+        )}
       </div>
 
       <section className="panel" style={{ marginBottom: 16 }}>

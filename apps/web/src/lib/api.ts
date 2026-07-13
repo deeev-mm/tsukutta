@@ -208,6 +208,21 @@ export const api = {
 
   listCategories: () =>
     request<{ categories: Category[] }>("/api/v1/categories"),
+  listCategoriesForManage: () =>
+    request<{ categories: Category[] }>("/api/v1/categories/manage"),
+  createCategory: (body: { code: string; name: string; sortOrder?: number }) =>
+    request<{ category: Category }>("/api/v1/categories", {
+      method: "POST",
+      json: body,
+    }),
+  patchCategory: (
+    id: string,
+    body: { name?: string; sortOrder?: number; isActive?: boolean },
+  ) =>
+    request<{ category: Category }>(`/api/v1/categories/${id}`, {
+      method: "PATCH",
+      json: body,
+    }),
 
   listFamilyUsers: () =>
     request<{ users: FamilyUser[] }>("/api/v1/family/users"),

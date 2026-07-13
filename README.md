@@ -6,7 +6,7 @@
 調理者向けに、レシピ本文・サムネ・メモの保存と編集も持たせる Web アプリです。  
 ユーザーは **家族単位** で増え、親ユーザー（Owner）は最初から調理者としても使えます。
 
-詳細仕様（正） [docs/SPEC.md](./docs/SPEC.md)（v0.6.2）  
+詳細仕様（正） [docs/SPEC.md](./docs/SPEC.md)（v0.6.3）  
 提案書 [docs/PROPOSAL_FOR_NON_ENGINEERS.md](./docs/PROPOSAL_FOR_NON_ENGINEERS.md)
 
 ---
@@ -94,7 +94,7 @@ Phase 2: 親が家族アカウントを発行（追加 Cook / Reviewer）
 
 - 家族アカウント発行
 - 家族レビュー（★・コメント）
-- **料理カテゴリマスタ**（付与・一覧絞り込み）
+- **料理カテゴリマスタ**（Owner/Cook が設定から CRUD、レシピ付与・一覧絞り込み）
 - Admin（KPI・停止・監査・ヘルス・カテゴリ管理）
 
 ### Phase 3 — 見返し

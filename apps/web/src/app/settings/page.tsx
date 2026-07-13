@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { GROQ_API_KEY_URL } from "@pf08/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { api, ApiError, type FamilyUser } from "@/lib/api";
+import { api, ApiError, type Category, type FamilyUser } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useGroqKey } from "@/lib/groq-key";
 
@@ -209,6 +209,174 @@ function FamilyMembers() {
   );
 }
 
+function CategoryMaster() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState("");
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [sortOrder, setSortOrder] = useState(100);
+  const [creating, setCreating] = useState(false);
+
+  async function load() {
+    setBusy(true);
+    try {
+      const { categories } = await api.listCategoriesForManage();
+      setCategories(categories);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function onCreate(e: FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    setError("");
+    try {
+      await api.createCategory({ code, name, sortOrder });
+      setCode("");
+      setName("");
+      setSortOrder(100);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "作成に失敗しました");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function onPatch(
+    c: Category,
+    patch: { name?: string; sortOrder?: number; isActive?: boolean },
+  ) {
+    setError("");
+    try {
+      await api.patchCategory(c.id, patch);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "更新に失敗しました");
+    }
+  }
+
+  return (
+    <div className="panel" style={{ marginTop: 16 }}>
+      <h2>料理カテゴリ</h2>
+      <p className="hint" style={{ marginBottom: 12 }}>
+        レシピの分類に使う共通マスタです。追加・名前変更・並び・有効/無効ができます。
+        無効にすると新規の付与はできなくなります（既存の紐づけは残ります）。
+      </p>
+      {error ? <p className="error">{error}</p> : null}
+      {busy ? (
+        <p className="muted loading-dot">読み込み中…</p>
+      ) : (
+        <div style={{ overflowX: "auto", marginBottom: 16 }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>コード</th>
+                <th>名前</th>
+                <th>並び</th>
+                <th>状態</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <code>{c.code}</code>
+                  </td>
+                  <td>
+                    <input
+                      defaultValue={c.name}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v && v !== c.name) void onPatch(c, { name: v });
+                      }}
+                      style={{
+                        border: "1px solid var(--line)",
+                        borderRadius: 8,
+                        padding: "6px 8px",
+                        width: 140,
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      defaultValue={c.sortOrder}
+                      onBlur={(e) => {
+                        const v = Number(e.target.value);
+                        if (Number.isFinite(v) && v !== c.sortOrder) {
+                          void onPatch(c, { sortOrder: v });
+                        }
+                      }}
+                      style={{
+                        border: "1px solid var(--line)",
+                        borderRadius: 8,
+                        padding: "6px 8px",
+                        width: 70,
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => void onPatch(c, { isActive: !c.isActive })}
+                    >
+                      {c.isActive ? "有効" : "無効"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <form onSubmit={onCreate}>
+        <h3 style={{ marginTop: 0, fontSize: "1rem" }}>カテゴリを追加</h3>
+        <div className="field">
+          <label htmlFor="catCode">コード（英数字）</label>
+          <input
+            id="catCode"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="例: side"
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="catName">名前</label>
+          <input
+            id="catName"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="例: 副菜"
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="catSort">並び順（小さいほど先）</label>
+          <input
+            id="catSort"
+            type="number"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
+          />
+        </div>
+        <button className="btn" disabled={creating}>
+          {creating ? "追加中…" : "追加する"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   return (
     <RequireAuth>
@@ -286,6 +454,7 @@ function SettingsInner() {
       </p>
 
       {user?.role === "owner" ? <FamilyMembers /> : null}
+      {user?.role === "owner" || user?.role === "cook" ? <CategoryMaster /> : null}
 
       <form className="panel" style={{ marginTop: 16 }} onSubmit={onSaveFamily}>
         <h2>家族構成</h2>

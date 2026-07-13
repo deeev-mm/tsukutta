@@ -1,0 +1,19 @@
+name = "pf08-api"
+main = "src/index.ts"
+compatibility_date = "2025-02-24"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "family-cook-log"
+database_id = "00000000-0000-0000-0000-000000000001"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "family-cook-log-images"
+
+[vars]
+CORS_ALLOWED_ORIGINS = "http://localhost:3000"
+APP_BASE_URL = "http://localhost:3000"
+SESSION_COOKIE_NAME = "pf08_session"

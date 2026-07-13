@@ -1,0 +1,52 @@
+.shell {
+  min-height: 100dvh;
+  padding-bottom: 72px;
+}
+
+.header {
+  padding: 18px 0 8px;
+}
+
+.brand {
+  font-size: 1.35rem;
+  display: inline-block;
+}
+
+.pageTitle {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.nav {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(720px, calc(100% - 24px));
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  z-index: 40;
+}
+
+.navItem {
+  text-align: center;
+  padding: 10px 4px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.active {
+  background: rgba(31, 107, 92, 0.12);
+  color: var(--teal-deep);
+  font-weight: 700;
+}

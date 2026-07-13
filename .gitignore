@@ -1,0 +1,14 @@
+node_modules
+.DS_Store
+.next
+.wrangler
+.turbo
+dist
+.env
+.env.local
+.env*.local
+*.log
+.vercel
+.open-next
+apps/api/.dev.vars
+apps/web/.env.local

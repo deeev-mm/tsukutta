@@ -1,0 +1,26 @@
+{
+  "name": "@pf08/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts --local --persist-to .wrangler/state",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply family-cook-log --local --persist-to .wrangler/state",
+    "db:seed:local": "node scripts/gen-seed.mjs && wrangler d1 execute family-cook-log --local --persist-to .wrangler/state --file=./seed.sql",
+    "setup:local": "pnpm db:migrate:local && pnpm db:seed:local",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pf08/shared": "workspace:*",
+    "drizzle-orm": "^0.39.3",
+    "hono": "^4.7.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "drizzle-kit": "^0.30.4",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.109.2"
+  }
+}

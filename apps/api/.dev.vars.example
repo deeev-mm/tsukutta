@@ -1,0 +1,2 @@
+# Local secrets for wrangler (optional)
+# Groq APIキーはフロントの localStorage に保存するため、サーバー側キーは不要です。

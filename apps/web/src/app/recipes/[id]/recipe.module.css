@@ -1,0 +1,37 @@
+.ingredientTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px;
+  font-size: 0.95rem;
+}
+
+.ingredientTable th,
+.ingredientTable td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ingredientTable th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+.ingredientTable th:last-child,
+.amount {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionRow td {
+  padding-top: 14px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--teal-deep);
+  border-bottom: none;
+  background: transparent;
+}

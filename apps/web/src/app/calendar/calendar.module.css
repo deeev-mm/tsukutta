@@ -1,0 +1,47 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  padding: 6px 0;
+}
+
+.cell {
+  min-height: 72px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 4px;
+  overflow: hidden;
+}
+
+.has {
+  background: rgba(31, 107, 92, 0.08);
+}
+
+.day {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-bottom: 2px;
+}
+
+.chip {
+  display: block;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--teal-deep);
+  margin-bottom: 2px;
+}
+
+.more {
+  font-size: 0.65rem;
+  color: var(--ink-muted);
+}

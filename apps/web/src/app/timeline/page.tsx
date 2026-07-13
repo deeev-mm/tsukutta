@@ -65,6 +65,7 @@ function CookLogItem({ log }: { log: CookLog }) {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ratingsReady, setRatingsReady] = useState(false);
 
   const myRating = ratings.find((r) => r.userId === user?.id);
   const rated = ratings.filter((r) => r.rating != null);
@@ -83,13 +84,18 @@ function CookLogItem({ log }: { log: CookLog }) {
       setComment(mine?.comment ?? "");
     } finally {
       setLoadingRatings(false);
+      setRatingsReady(true);
     }
   }
 
+  useEffect(() => {
+    void loadRatings();
+    // 一覧表示時に平均★を出すため、展開前に取得する
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- log.id 変更時のみ再取得
+  }, [log.id]);
+
   function onExpand() {
-    const next = !expanded;
-    setExpanded(next);
-    if (next && ratings.length === 0) void loadRatings();
+    setExpanded((prev) => !prev);
   }
 
   async function onSubmitRating(e: FormEvent) {
@@ -125,7 +131,9 @@ function CookLogItem({ log }: { log: CookLog }) {
 
       <div className="row" style={{ marginTop: 10, justifyContent: "space-between" }}>
         <div className="row" style={{ gap: 6 }}>
-          {avg != null ? (
+          {!ratingsReady ? (
+            <span className="hint loading-dot">評価を確認中…</span>
+          ) : avg != null ? (
             <span className="stars stars-filled" aria-label={`平均評価 ${avg.toFixed(1)}`}>
               {"★".repeat(Math.round(avg))}
               {"☆".repeat(5 - Math.round(avg))}
@@ -133,7 +141,7 @@ function CookLogItem({ log }: { log: CookLog }) {
           ) : (
             <span className="hint">まだ評価がありません</span>
           )}
-          {rated.length > 0 ? (
+          {ratingsReady && rated.length > 0 ? (
             <span className="hint">
               （{avg?.toFixed(1)} ・ {rated.length}件）
             </span>

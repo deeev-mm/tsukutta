@@ -133,6 +133,11 @@ function RecipesInner() {
                   <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem" }}>
                     {r.name}
                   </strong>
+                  {r.isHallOfFame ? (
+                    <span className="chip" style={{ marginLeft: 8 }}>
+                      殿堂
+                    </span>
+                  ) : null}
                   {r.categories.length > 0 ? (
                     <div className="chip-row" style={{ marginTop: 6 }}>
                       {r.categories.map((c) => (

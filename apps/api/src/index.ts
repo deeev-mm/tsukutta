@@ -9,6 +9,7 @@ import { categoryRoutes } from "./routes/categories";
 import { aiRoutes } from "./routes/ai";
 import { cookLogRoutes } from "./routes/cook-logs";
 import { adminRoutes } from "./routes/admin";
+import { rankingRoutes } from "./routes/rankings";
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -34,6 +35,7 @@ app.route("/api/v1/recipes", recipeRoutes);
 app.route("/api/v1/categories", categoryRoutes);
 app.route("/api/v1/ai", aiRoutes);
 app.route("/api/v1/cook-logs", cookLogRoutes);
+app.route("/api/v1/rankings", rankingRoutes);
 app.route("/api/v1/admin", adminRoutes);
 
 export default app;

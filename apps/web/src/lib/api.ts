@@ -89,6 +89,24 @@ export type CookLogRating = {
   updatedAt: string;
 };
 
+export type RankingEntry = {
+  rank: number;
+  recipeId: string;
+  name: string;
+  imageUrl: string | null;
+  isHallOfFame: boolean;
+  cookCount: number;
+  avgRating: number | null;
+  ratingCount: number;
+  lastCookedAt: string | null;
+};
+
+export type RecommendationEntry = RankingEntry & {
+  score: number;
+  daysSinceLastCooked: number;
+  reason: string;
+};
+
 export type AdminInfo = { id: string; loginId: string };
 
 export type AdminFamily = {
@@ -177,10 +195,11 @@ export const api = {
       };
     }>("/api/v1/family", { method: "PATCH", json: body }),
 
-  listRecipes: (q?: string, categoryId?: string) => {
+  listRecipes: (q?: string, categoryId?: string, hallOfFame?: boolean) => {
     const sp = new URLSearchParams();
     if (q) sp.set("q", q);
     if (categoryId) sp.set("categoryId", categoryId);
+    if (hallOfFame) sp.set("hallOfFame", "1");
     const s = sp.toString();
     return request<{ recipes: Recipe[] }>(
       `/api/v1/recipes${s ? `?${s}` : ""}`,
@@ -327,6 +346,23 @@ export const api = {
       method: "PUT",
       json: body,
     }),
+
+  listRankings: (categoryId?: string) => {
+    const sp = new URLSearchParams();
+    if (categoryId) sp.set("categoryId", categoryId);
+    const s = sp.toString();
+    return request<{ rankings: RankingEntry[]; categoryId: string | null }>(
+      `/api/v1/rankings${s ? `?${s}` : ""}`,
+    );
+  },
+  listRecommendations: (limit?: number) => {
+    const sp = new URLSearchParams();
+    if (limit) sp.set("limit", String(limit));
+    const s = sp.toString();
+    return request<{ recommendations: RecommendationEntry[] }>(
+      `/api/v1/rankings/recommendations${s ? `?${s}` : ""}`,
+    );
+  },
 
   // --- Admin ---
   adminLogin: (loginId: string, password: string) =>

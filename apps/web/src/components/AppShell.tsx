@@ -9,6 +9,7 @@ const links = [
   { href: "/recipes", label: "レシピ" },
   { href: "/timeline", label: "記録" },
   { href: "/calendar", label: "暦" },
+  { href: "/rankings", label: "見返し" },
   { href: "/settings", label: "設定" },
 ];
 

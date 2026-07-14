@@ -79,6 +79,7 @@ recipeRoutes.get("/", async (c) => {
   const user = c.get("user");
   const q = (c.req.query("q") ?? "").trim();
   const categoryId = (c.req.query("categoryId") ?? "").trim();
+  const hallOfFame = c.req.query("hallOfFame") === "1";
   const db = c.get("db");
 
   let recipeIdFilter: string[] | null = null;
@@ -98,6 +99,9 @@ recipeRoutes.get("/", async (c) => {
     eq(recipes.familyId, user.familyId),
     eq(recipes.isArchived, 0),
   ];
+  if (hallOfFame) {
+    conds.push(eq(recipes.isHallOfFame, 1));
+  }
   if (q) {
     conds.push(like(recipes.name, `%${q}%`));
   }
@@ -228,10 +232,14 @@ recipeRoutes.patch("/:id", async (c) => {
     tags?: string[];
     clearImage?: boolean;
     categoryIds?: string[];
+    isHallOfFame?: boolean;
   }>();
 
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
 
+  if (body.isHallOfFame !== undefined) {
+    patch.isHallOfFame = body.isHallOfFame ? 1 : 0;
+  }
   if (body.name !== undefined) {
     const name = body.name.trim();
     if (!name) return c.json({ error: "料理名は必須です" }, 400);

@@ -25,6 +25,7 @@ function DetailInner() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [displayServings, setDisplayServings] = useState(2);
   const [error, setError] = useState("");
+  const [hofBusy, setHofBusy] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -49,6 +50,22 @@ function DetailInner() {
     if (!confirm("このレシピを削除（またはアーカイブ）しますか？")) return;
     await api.deleteRecipe(recipe.id);
     router.replace("/recipes");
+  }
+
+  async function onToggleHall() {
+    if (!recipe) return;
+    setHofBusy(true);
+    setError("");
+    try {
+      const { recipe: updated } = await api.updateRecipe(recipe.id, {
+        isHallOfFame: !recipe.isHallOfFame,
+      });
+      setRecipe(updated);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "殿堂の更新に失敗しました");
+    } finally {
+      setHofBusy(false);
+    }
   }
 
   if (error) {
@@ -86,7 +103,14 @@ function DetailInner() {
         />
       ) : null}
 
-      <h1 style={{ marginTop: 8 }}>{recipe.name}</h1>
+      <h1 style={{ marginTop: 8 }}>
+        {recipe.name}
+        {recipe.isHallOfFame ? (
+          <span className="chip" style={{ marginLeft: 10, verticalAlign: "middle" }}>
+            殿堂入り
+          </span>
+        ) : null}
+      </h1>
       {recipe.sourceUrl ? (
         <p>
           <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="muted">
@@ -105,7 +129,7 @@ function DetailInner() {
         </div>
       ) : null}
 
-      <div className="row" style={{ margin: "16px 0" }}>
+      <div className="row" style={{ margin: "16px 0", flexWrap: "wrap" }}>
         {user?.role !== "reviewer" ? (
           <>
             <Link href={`/recipes/${recipe.id}/edit`} className="btn btn-secondary">
@@ -114,6 +138,14 @@ function DetailInner() {
             <Link href={`/cook/new?recipeId=${recipe.id}`} className="btn">
               作った
             </Link>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void onToggleHall()}
+              disabled={hofBusy}
+            >
+              {recipe.isHallOfFame ? "殿堂を外す" : "殿堂入りにする"}
+            </button>
             <button type="button" className="btn btn-secondary" onClick={onDelete}>
               削除
             </button>

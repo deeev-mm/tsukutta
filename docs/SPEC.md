@@ -2,9 +2,9 @@
 
 | 項目 | 内容 |
 |---|---|
-| バージョン | 0.6.3 |
+| バージョン | 0.7.0 |
 | 更新日 | 2026-07-30 |
-| ステータス | **Phase 1–2 実装済み**（ローカル動作確認済み）。Phase 3（ランキング等）は未着手 |
+| ステータス | **Phase 1–3 実装済み**（ローカル動作確認済み） |
 
 ---
 
@@ -1037,11 +1037,11 @@ CREATE INDEX idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC
 
 | ID | 機能 |
 |---|---|
-| F-10 | ランキング（全体 / **カテゴリ別**） |
-| F-11 | 殿堂入り |
-| F-12 | 「また作る」おすすめ |
+| F-10 | ランキング（全体 / **カテゴリ別**）。ソート: 作った回数↓ → 平均★↓ |
+| F-11 | 殿堂入り（Recipe.`isHallOfFame` 手動。Owner/Cook がトグル） |
+| F-12 | 「また作る」おすすめ（スコア: 平均★×2 + min(回数,5) + 殿堂加点 + 久しぶりの加点 − 直近減点） |
 
-※ AIは Phase 1 必須。カテゴリマスタは **Phase 2 推奨**（Phase 3 のカテゴリ別ランキングの前提データになる）。
+※ AIは Phase 1 必須。カテゴリマスタは Phase 2（カテゴリ別ランキングの前提）。
 
 ---
 
@@ -1087,7 +1087,7 @@ Admin UI は一般ユーザー画面と分離（例: `/admin/*`）。シード A
 | C-08b | カテゴリマスタ管理 | 2 | Owner/Cook。名称・code・並び・有効/無効（設定画面） |
 | C-09 | Groq APIキー | 1 | localStorage（デモ Family も同じ） |
 | C-10 | （作成フローに含む） | 1 | 学習注意表記必須 |
-| C-11 | ランキング / 殿堂操作 | 3 | |
+| C-11 | ランキング / 殿堂 / また作る | 3 | `/rankings`。全体・カテゴリ別ランキング、殿堂一覧、おすすめ。Owner/Cook はレシピ詳細で殿堂トグル |
 
 Owner ホームの第1ビューは散らさない。主CTAは「レシピを残す」または「今日作った」。  
 ※ Phase 2 で追加 Cook を発行した場合も、調理系画面は同じ UI（権限チェックのみ）。
@@ -1115,8 +1115,8 @@ Owner ホームの第1ビューは散らさない。主CTAは「レシピを残�
 | POST | `/auth/logout` | 1 | |
 | GET/PATCH | `/family` | 1–2 | householdSize など（自家族） |
 | GET/POST/PATCH | `/family/users` | 2 | 家族アカウント発行・更新（Owner） |
-| GET/POST | `/recipes` | 1–2 | 一覧・作成（family スコープ）。Phase 2: `?categoryId=` 絞り込み |
-| GET/PATCH/DELETE | `/recipes/:id` | 1–2 | 詳細・更新・削除。Phase 2: `categoryIds` |
+| GET/POST | `/recipes` | 1–3 | 一覧・作成。`?categoryId=` / `?hallOfFame=1` |
+| GET/PATCH/DELETE | `/recipes/:id` | 1–3 | 詳細・更新・削除。`isHallOfFame` は Owner/Cook が PATCH |
 | POST | `/recipes/:id/image` | 1 | サムネイルアップロード（任意） |
 | PUT | `/recipes/:id/categories` | 2 | カテゴリ割当の置き換え（Owner/Cook） |
 | GET | `/categories` | 2 | 有効なカテゴリマスタ一覧（付与・絞り込み用） |
@@ -1128,7 +1128,8 @@ Owner ホームの第1ビューは散らさない。主CTAは「レシピを残�
 | GET/PATCH/DELETE | `/cook-logs/:id` | 1 | |
 | GET/POST/PATCH | `/members` | 2 | |
 | PUT | `/cook-logs/:id/ratings` | 2 | 家族評価 upsert（自 User） |
-| GET | `/rankings` | 3 | 全体 / `?categoryId=` カテゴリ別 |
+| GET | `/rankings` | 3 | 全体 / `?categoryId=` カテゴリ別。作った回数↓・平均★↓（家族スコープ・記録1件以上） |
+| GET | `/rankings/recommendations` | 3 | 「また作る」候補。高評価・殿堂・作った回数を加点、直近7日以内は減点 |
 | POST | `/admin/auth/login` | 2 | Admin ログイン（一般ユーザーと分離推奨） |
 | GET | `/admin/dashboard` | 2 | KPI 集計 |
 | GET | `/admin/families` | 2 | テナント一覧 |
@@ -1275,6 +1276,8 @@ https://api.xxx.workers.dev  （Hono）
 ### Phase 3
 
 17. ランキング・殿堂入りが家族スコープで動く（ランキングはカテゴリ別も可）
+18. Owner/Cook がレシピを殿堂入りにでき、一覧・見返し画面で確認できる
+19. 「また作る」おすすめが記録データから候補を返す
 
 ---
 
@@ -1346,3 +1349,4 @@ https://api.xxx.workers.dev  （Hono）
 | 2026-07-30 | 0.6.1 | 料理カテゴリマスタを Phase 2 推奨として追記（グローバルシード・多対多・Admin CRUD・一覧絞り込み・カテゴリ別ランキング前提） |
 | 2026-07-30 | 0.6.2 | Phase 2 実装反映（家族アカウント発行・レビュー・カテゴリ・Admin UI）。ステータスを Phase 1–2 実装済みに更新 |
 | 2026-07-30 | 0.6.3 | カテゴリマスタ CRUD を Owner/Cook（設定画面）でも可能に。Admin は運用補助として維持 |
+| 2026-07-30 | 0.7.0 | Phase 3 実装（ランキング・殿堂入り・また作るおすすめ）。ステータスを Phase 1–3 実装済みに更新 |

@@ -19,15 +19,20 @@ function HomeInner() {
   const { user } = useAuth();
   const [recentLogs, setRecentLogs] = useState<CookLog[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recs, setRecs] = useState<
+    Awaited<ReturnType<typeof api.listRecommendations>>["recommendations"]
+  >([]);
 
   useEffect(() => {
     void (async () => {
-      const [logs, rec] = await Promise.all([
+      const [logs, rec, recommendations] = await Promise.all([
         api.listCookLogs(),
         api.listRecipes(),
+        api.listRecommendations(3),
       ]);
       setRecentLogs(logs.cookLogs.slice(0, 5));
       setRecipes(rec.recipes.slice(0, 5));
+      setRecs(recommendations.recommendations);
     })();
   }, []);
 
@@ -46,8 +51,8 @@ function HomeInner() {
             <Link href="/timeline" className="btn btn-block">
               記録を見て評価する
             </Link>
-            <Link href="/recipes" className="btn btn-secondary btn-block">
-              レシピを見る
+            <Link href="/rankings" className="btn btn-secondary btn-block">
+              見返しを見る
             </Link>
           </>
         ) : (
@@ -61,6 +66,27 @@ function HomeInner() {
           </>
         )}
       </div>
+
+      {recs.length > 0 ? (
+        <section className="panel" style={{ marginBottom: 16 }}>
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <h2 style={{ margin: 0 }}>また作るなら</h2>
+            <Link href="/rankings" className="hint">
+              もっと見る
+            </Link>
+          </div>
+          <ul className="clean stack" style={{ marginTop: 12 }}>
+            {recs.map((r) => (
+              <li key={r.recipeId}>
+                <Link href={`/recipes/${r.recipeId}`}>
+                  <strong>{r.name}</strong>
+                  <span className="muted"> · {r.reason}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="panel" style={{ marginBottom: 16 }}>
         <h2>最近の記録</h2>
@@ -93,6 +119,11 @@ function HomeInner() {
               <li key={r.id}>
                 <Link href={`/recipes/${r.id}`}>
                   <strong>{r.name}</strong>
+                  {r.isHallOfFame ? (
+                    <span className="chip" style={{ marginLeft: 8 }}>
+                      殿堂
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             ))}

@@ -22,6 +22,7 @@ import {
   verifyPassword,
   type Env,
 } from "../lib/crypto";
+import { isLocked, normalizeIdentifier, recordFailure, resetAttempts } from "../lib/rate-limit";
 
 const ADMIN_COOKIE = "tsukutta_admin_session";
 const SESSION_DAYS = 14;
@@ -85,15 +86,26 @@ adminRoutes.post("/auth/login", async (c) => {
     return c.json({ error: "ログインIDとパスワードを入力してください" }, 400);
   }
 
-  const row = await c
-    .get("db")
+  const db = c.get("db");
+  const identifier = normalizeIdentifier(loginId);
+
+  if (await isLocked(db, "admin", identifier)) {
+    return c.json(
+      { error: "ログイン試行回数が上限に達しました。15分ほど待ってから再試行してください" },
+      429,
+    );
+  }
+
+  const row = await db
     .select()
     .from(adminUsers)
     .where(eq(adminUsers.loginId, loginId))
     .get();
   if (!row || !(await verifyPassword(password, row.passwordHash))) {
+    await recordFailure(db, "admin", identifier);
     return c.json({ error: "ログインIDまたはパスワードが違います" }, 401);
   }
+  await resetAttempts(db, "admin", identifier);
 
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
   const token = [...tokenBytes].map((b) => b.toString(16).padStart(2, "0")).join("");

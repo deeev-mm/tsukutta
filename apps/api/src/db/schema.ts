@@ -199,6 +199,24 @@ export const adminSessions = sqliteTable(
   }),
 );
 
+export const loginAttempts = sqliteTable(
+  "login_attempts",
+  {
+    id: text("id").primaryKey(),
+    scope: text("scope").notNull(), // user | admin | register
+    identifier: text("identifier").notNull(), // loginId or IP, lowercased/trimmed
+    failedCount: integer("failed_count").notNull().default(0),
+    lockedUntil: text("locked_until"),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    scopeIdentifierUq: uniqueIndex("login_attempts_scope_identifier_uq").on(
+      t.scope,
+      t.identifier,
+    ),
+  }),
+);
+
 export type Family = typeof families.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;

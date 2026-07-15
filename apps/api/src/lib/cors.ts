@@ -1,6 +1,8 @@
 import type { Context, Next } from "hono";
 import type { Env } from "./crypto";
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 export function parseAllowedOrigins(raw: string | undefined): string[] {
   if (!raw) return ["http://localhost:3000"];
   return raw
@@ -34,6 +36,13 @@ export async function corsMiddleware(
       res.headers.set("Vary", "Origin");
     }
     return res;
+  }
+
+  // Cookieは本番でSameSite=Noneのため、CORSヘッダだけでは更新系リクエストの
+  // 実行そのものは防げない（ブラウザにレスポンスを読ませないだけ）。
+  // 許可オリジン以外からの更新系リクエストはここで実行前に拒否する（CSRF対策）。
+  if (!SAFE_METHODS.has(c.req.method) && !ok) {
+    return c.json({ error: "リクエスト元が許可されていません" }, 403);
   }
 
   await next();

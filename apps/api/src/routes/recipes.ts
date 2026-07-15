@@ -5,6 +5,7 @@ import { categories, cookLogs, recipeCategories, recipes } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireCookRole } from "../lib/auth";
 import { newId, nowIso, parseJsonArray, type Env } from "../lib/crypto";
+import { stripImageMetadata } from "../lib/strip-exif";
 
 export const recipeRoutes = new Hono<{
   Bindings: Env;
@@ -399,7 +400,8 @@ recipeRoutes.post("/:id/image", async (c) => {
     }
   }
 
-  await c.env.IMAGES.put(key, await file.arrayBuffer(), {
+  const cleaned = stripImageMetadata(await file.arrayBuffer(), file.type);
+  await c.env.IMAGES.put(key, cleaned, {
     httpMetadata: { contentType: file.type },
   });
 

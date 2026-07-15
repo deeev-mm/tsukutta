@@ -14,6 +14,7 @@ import {
   verifyPassword,
   type Env,
 } from "../lib/crypto";
+import { isLocked, normalizeIdentifier, recordFailure, resetAttempts } from "../lib/rate-limit";
 
 const SESSION_DAYS = 30;
 
@@ -109,6 +110,15 @@ authRoutes.post("/login", async (c) => {
   }
 
   const db = c.get("db");
+  const identifier = normalizeIdentifier(loginId);
+
+  if (await isLocked(db, "user", identifier)) {
+    return c.json(
+      { error: "ログイン試行回数が上限に達しました。15分ほど待ってから再試行してください" },
+      429,
+    );
+  }
+
   const row = await db
     .select({
       user: users,
@@ -120,6 +130,7 @@ authRoutes.post("/login", async (c) => {
     .get();
 
   if (!row || row.user.isActive !== 1) {
+    await recordFailure(db, "user", identifier);
     return c.json({ error: "ログインIDまたはパスワードが違います" }, 401);
   }
   if (row.family.isSuspended === 1) {
@@ -128,8 +139,10 @@ authRoutes.post("/login", async (c) => {
 
   const ok = await verifyPassword(password, row.user.passwordHash);
   if (!ok) {
+    await recordFailure(db, "user", identifier);
     return c.json({ error: "ログインIDまたはパスワードが違います" }, 401);
   }
+  await resetAttempts(db, "user", identifier);
 
   const sessionUser: SessionUser = {
     id: row.user.id,

@@ -27,6 +27,8 @@ function HomeInner() {
   const [aiPick, setAiPick] = useState<(RankingEntry & { comment: string }) | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [cookedRecipeCount, setCookedRecipeCount] = useState(0);
+  const [cookLogCount, setCookLogCount] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -38,8 +40,16 @@ function HomeInner() {
       setRecentLogs(logs.cookLogs.slice(0, 5));
       setRecipes(rec.recipes.slice(0, 5));
       setRecs(recommendations.recommendations);
+      setCookLogCount(logs.cookLogs.length);
+      setCookedRecipeCount(new Set(logs.cookLogs.map((l) => l.recipeId)).size);
     })();
   }, []);
+
+  // AIおすすめは「作った記録があるレシピ」を候補にするため、種類・件数が少ないと
+  // 選択肢がなく精度が落ちる。目安として下回っている間だけ注意書きを出す。
+  const AI_MIN_RECIPES = 5;
+  const AI_MIN_LOGS = 10;
+  const aiDataThin = cookedRecipeCount < AI_MIN_RECIPES || cookLogCount < AI_MIN_LOGS;
 
   async function onAskAi() {
     setAiBusy(true);
@@ -95,6 +105,11 @@ function HomeInner() {
         {!hasKey ? (
           <p className="hint">
             <Link href="/settings">設定画面</Link>でGroq APIキーを登録すると使えます
+          </p>
+        ) : aiDataThin ? (
+          <p className="hint">
+            「作った」記録がもう少し増えると使えます（目安: 作ったレシピ{AI_MIN_RECIPES}品以上・記録{AI_MIN_LOGS}件以上／現在
+            {cookedRecipeCount}品・{cookLogCount}件）。それまでは候補が少なく精度が出ないため非表示にしています。
           </p>
         ) : (
           <>

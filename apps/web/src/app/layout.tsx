@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_JP, Shippori_Mincho } from "next/font/google";
 import { AuthProvider } from "@/lib/auth";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const body = IBM_Plex_Sans_JP({
@@ -19,6 +20,23 @@ export const metadata: Metadata = {
   title: "家庭料理ログ",
   description:
     "気になるレシピの出典を残し、うちの版として保存・アレンジする。作ったら記録する。",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "うちの味",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1f6b5c",
 };
 
 export default function RootLayout({
@@ -35,6 +53,7 @@ export default function RootLayout({
             --font-display: var(--font-display-loaded), "Hiragino Mincho ProN", serif;
           }
         `}</style>
+        <ServiceWorkerRegister />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

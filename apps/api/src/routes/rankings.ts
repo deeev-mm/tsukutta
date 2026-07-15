@@ -144,14 +144,13 @@ rankingRoutes.get("/", async (c) => {
   });
 });
 
-/**
- * GET /recommendations — 「また作る」候補
- * 高評価・殿堂・作った回数を加点し、最近作ったものは減点。
- */
-rankingRoutes.get("/recommendations", async (c) => {
-  const user = c.get("user");
-  const db = c.get("db");
-  const rows = await loadRankingRows(db, user.familyId);
+/** ルールベースの「また作る」候補算出。AIおすすめ機能の候補プールとしても再利用する。 */
+export async function computeRecommendations(
+  db: ReturnType<typeof import("../db/client").createDb>,
+  familyId: string,
+  limit: number,
+) {
+  const rows = await loadRankingRows(db, familyId);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -179,24 +178,29 @@ rankingRoutes.get("/recommendations", async (c) => {
 
   scored.sort((a, b) => b.score - a.score || b.row.cookCount - a.row.cookCount);
 
-  const limit = Math.min(
-    10,
-    Math.max(1, Number(c.req.query("limit")) || 5),
-  );
+  return scored.slice(0, limit).map((s, i) => ({
+    ...toEntry(s.row, i + 1),
+    score: Math.round(s.score * 10) / 10,
+    daysSinceLastCooked: s.daysSince,
+    reason:
+      s.row.isHallOfFame === 1
+        ? "殿堂入り"
+        : s.row.ratingCount > 0 && (s.row.ratingSum ?? 0) / s.row.ratingCount >= 4
+          ? "家族の評価が高い"
+          : s.daysSince >= 14
+            ? "しばらく作っていない"
+            : "よく作っている定番",
+  }));
+}
 
-  return c.json({
-    recommendations: scored.slice(0, limit).map((s, i) => ({
-      ...toEntry(s.row, i + 1),
-      score: Math.round(s.score * 10) / 10,
-      daysSinceLastCooked: s.daysSince,
-      reason:
-        s.row.isHallOfFame === 1
-          ? "殿堂入り"
-          : s.row.ratingCount > 0 && (s.row.ratingSum ?? 0) / s.row.ratingCount >= 4
-            ? "家族の評価が高い"
-            : s.daysSince >= 14
-              ? "しばらく作っていない"
-              : "よく作っている定番",
-    })),
-  });
+/**
+ * GET /recommendations — 「また作る」候補
+ * 高評価・殿堂・作った回数を加点し、最近作ったものは減点。
+ */
+rankingRoutes.get("/recommendations", async (c) => {
+  const user = c.get("user");
+  const db = c.get("db");
+  const limit = Math.min(10, Math.max(1, Number(c.req.query("limit")) || 5));
+  const recommendations = await computeRecommendations(db, user.familyId, limit);
+  return c.json({ recommendations });
 });

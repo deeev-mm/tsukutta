@@ -107,6 +107,15 @@ export type RecommendationEntry = RankingEntry & {
   reason: string;
 };
 
+export type ShoppingListItem = {
+  id: string;
+  name: string;
+  sourceRecipeId: string | null;
+  isChecked: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminInfo = { id: string; loginId: string };
 
 export type AdminFamily = {
@@ -287,6 +296,31 @@ export const api = {
     return data as { recipe: Recipe };
   },
 
+  downloadBackup: async () => {
+    const res = await fetch(`${API_BASE}/api/v1/export`, {
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new ApiError(
+        (data as { error?: string }).error || "バックアップの取得に失敗しました",
+        res.status,
+      );
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const match = disposition.match(/filename="([^"]+)"/);
+    const filename = match?.[1] || `tsukutta-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   formatAi: (rawText: string, sourceUrl?: string) => {
     const clientApiKey =
       typeof window !== "undefined"
@@ -303,6 +337,17 @@ export const api = {
     }>("/api/v1/ai/format", {
       method: "POST",
       json: { rawText, sourceUrl, clientApiKey },
+    });
+  },
+
+  recommendWithAi: () => {
+    const clientApiKey =
+      typeof window !== "undefined" ? localStorage.getItem(GROQ_STORAGE_KEY) : null;
+    return request<{
+      recommendation: RankingEntry & { comment: string };
+    }>("/api/v1/ai/recommend", {
+      method: "POST",
+      json: { clientApiKey },
     });
   },
 
@@ -363,6 +408,28 @@ export const api = {
       `/api/v1/rankings/recommendations${s ? `?${s}` : ""}`,
     );
   },
+
+  listShoppingList: () =>
+    request<{ items: ShoppingListItem[] }>("/api/v1/shopping-list"),
+  addShoppingListItem: (name: string) =>
+    request<{ item: ShoppingListItem }>("/api/v1/shopping-list", {
+      method: "POST",
+      json: { name },
+    }),
+  addShoppingListFromRecipe: (recipeId: string, servings?: number) =>
+    request<{ added: number; items: ShoppingListItem[] }>(
+      `/api/v1/shopping-list/from-recipe/${recipeId}`,
+      { method: "POST", json: servings ? { servings } : {} },
+    ),
+  updateShoppingListItem: (id: string, body: { name?: string; isChecked?: boolean }) =>
+    request<{ item: ShoppingListItem }>(`/api/v1/shopping-list/${id}`, {
+      method: "PATCH",
+      json: body,
+    }),
+  deleteShoppingListItem: (id: string) =>
+    request<{ ok: boolean }>(`/api/v1/shopping-list/${id}`, { method: "DELETE" }),
+  clearCheckedShoppingListItems: () =>
+    request<{ ok: boolean }>("/api/v1/shopping-list/checked", { method: "DELETE" }),
 
   // --- Admin ---
   adminLogin: (loginId: string, password: string) =>

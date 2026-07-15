@@ -10,6 +10,8 @@ import { aiRoutes } from "./routes/ai";
 import { cookLogRoutes } from "./routes/cook-logs";
 import { adminRoutes } from "./routes/admin";
 import { rankingRoutes } from "./routes/rankings";
+import { shoppingListRoutes } from "./routes/shopping-list";
+import { exportRoutes } from "./routes/export";
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -36,6 +38,8 @@ app.route("/api/v1/categories", categoryRoutes);
 app.route("/api/v1/ai", aiRoutes);
 app.route("/api/v1/cook-logs", cookLogRoutes);
 app.route("/api/v1/rankings", rankingRoutes);
+app.route("/api/v1/shopping-list", shoppingListRoutes);
+app.route("/api/v1/export", exportRoutes);
 app.route("/api/v1/admin", adminRoutes);
 
 export default app;

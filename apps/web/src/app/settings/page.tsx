@@ -534,6 +534,25 @@ function SettingsInner() {
         </div>
       </form>
 
+      <section className="panel" style={{ marginTop: 16 }}>
+        <h2>バックアップ</h2>
+        <p className="hint" style={{ marginBottom: 12 }}>
+          レシピ・調理記録・評価をJSONファイルとして書き出せます（画像本体は含みません）。
+        </p>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            setError("");
+            void api.downloadBackup().catch((err) => {
+              setError(err instanceof ApiError ? err.message : "バックアップの取得に失敗しました");
+            });
+          }}
+        >
+          JSONをダウンロード
+        </button>
+      </section>
+
       {message ? <p className="hint" style={{ marginTop: 12 }}>{message}</p> : null}
       {error ? <p className="error">{error}</p> : null}
 

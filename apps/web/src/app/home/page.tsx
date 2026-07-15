@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { api, type CookLog, type Recipe } from "@/lib/api";
+import { api, ApiError, type CookLog, type Recipe, type RankingEntry } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useGroqKey } from "@/lib/groq-key";
 
 export default function HomePage() {
   return (
@@ -17,11 +18,15 @@ export default function HomePage() {
 
 function HomeInner() {
   const { user } = useAuth();
+  const { hasKey } = useGroqKey();
   const [recentLogs, setRecentLogs] = useState<CookLog[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recs, setRecs] = useState<
     Awaited<ReturnType<typeof api.listRecommendations>>["recommendations"]
   >([]);
+  const [aiPick, setAiPick] = useState<(RankingEntry & { comment: string }) | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     void (async () => {
@@ -35,6 +40,19 @@ function HomeInner() {
       setRecs(recommendations.recommendations);
     })();
   }, []);
+
+  async function onAskAi() {
+    setAiBusy(true);
+    setAiError("");
+    try {
+      const { recommendation } = await api.recommendWithAi();
+      setAiPick(recommendation);
+    } catch (e) {
+      setAiError(e instanceof ApiError ? e.message : "AIおすすめの取得に失敗しました");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   return (
     <AppShell>
@@ -66,6 +84,35 @@ function HomeInner() {
           </>
         )}
       </div>
+
+      <section className="panel" style={{ marginBottom: 16 }}>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0 }}>今日のおすすめをAIに聞く</h2>
+        </div>
+        <p className="hint" style={{ marginTop: 8, marginBottom: 12 }}>
+          直近の調理記録を踏まえて、Groqが1品だけ提案します。押したときだけ呼び出すので、開くたびには消費しません。
+        </p>
+        {!hasKey ? (
+          <p className="hint">
+            <Link href="/settings">設定画面</Link>でGroq APIキーを登録すると使えます
+          </p>
+        ) : (
+          <>
+            <button type="button" className="btn" onClick={() => void onAskAi()} disabled={aiBusy}>
+              {aiBusy ? "考え中…" : "AIにおすすめを聞く"}
+            </button>
+            {aiError ? <p className="error">{aiError}</p> : null}
+            {aiPick ? (
+              <div style={{ marginTop: 12 }}>
+                <Link href={`/recipes/${aiPick.recipeId}`}>
+                  <strong>{aiPick.name}</strong>
+                </Link>
+                <p className="hint" style={{ marginTop: 4 }}>{aiPick.comment}</p>
+              </div>
+            ) : null}
+          </>
+        )}
+      </section>
 
       {recs.length > 0 ? (
         <section className="panel" style={{ marginBottom: 16 }}>

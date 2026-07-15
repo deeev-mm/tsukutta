@@ -63,7 +63,7 @@ function RecipesInner() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="料理名で検索"
+          placeholder="料理名・材料・メモ・タグで検索"
           style={{
             flex: 1,
             minWidth: 160,

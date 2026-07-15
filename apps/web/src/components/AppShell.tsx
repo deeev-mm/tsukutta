@@ -8,6 +8,7 @@ const links = [
   { href: "/home", label: "ホーム" },
   { href: "/recipes", label: "レシピ" },
   { href: "/timeline", label: "記録" },
+  { href: "/shopping-list", label: "買い物" },
   { href: "/calendar", label: "暦" },
   { href: "/rankings", label: "見返し" },
   { href: "/settings", label: "設定" },

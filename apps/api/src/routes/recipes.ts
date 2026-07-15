@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, eq, inArray, like } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or } from "drizzle-orm";
 import { normalizeIngredientsToOneServing } from "@tsukutta/shared";
 import { categories, cookLogs, recipeCategories, recipes } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
@@ -104,7 +104,15 @@ recipeRoutes.get("/", async (c) => {
     conds.push(eq(recipes.isHallOfFame, 1));
   }
   if (q) {
-    conds.push(like(recipes.name, `%${q}%`));
+    const needle = `%${q}%`;
+    conds.push(
+      or(
+        like(recipes.name, needle),
+        like(recipes.ingredientsJson, needle),
+        like(recipes.notes, needle),
+        like(recipes.tagsJson, needle),
+      )!,
+    );
   }
   if (recipeIdFilter) {
     conds.push(inArray(recipes.id, recipeIdFilter));

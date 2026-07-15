@@ -199,6 +199,26 @@ export const adminSessions = sqliteTable(
   }),
 );
 
+export const shoppingListItems = sqliteTable(
+  "shopping_list_items",
+  {
+    id: text("id").primaryKey(),
+    familyId: text("family_id")
+      .notNull()
+      .references(() => families.id),
+    name: text("name").notNull(),
+    sourceRecipeId: text("source_recipe_id").references(() => recipes.id, {
+      onDelete: "set null",
+    }),
+    isChecked: integer("is_checked").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    familyIdx: index("idx_shopping_list_family_id").on(t.familyId, t.isChecked),
+  }),
+);
+
 export const loginAttempts = sqliteTable(
   "login_attempts",
   {

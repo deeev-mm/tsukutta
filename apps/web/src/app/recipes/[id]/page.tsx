@@ -26,6 +26,8 @@ function DetailInner() {
   const [displayServings, setDisplayServings] = useState(2);
   const [error, setError] = useState("");
   const [hofBusy, setHofBusy] = useState(false);
+  const [shoppingBusy, setShoppingBusy] = useState(false);
+  const [shoppingMessage, setShoppingMessage] = useState("");
 
   useEffect(() => {
     void (async () => {
@@ -50,6 +52,21 @@ function DetailInner() {
     if (!confirm("このレシピを削除（またはアーカイブ）しますか？")) return;
     await api.deleteRecipe(recipe.id);
     router.replace("/recipes");
+  }
+
+  async function onAddToShoppingList() {
+    if (!recipe) return;
+    setShoppingBusy(true);
+    setShoppingMessage("");
+    setError("");
+    try {
+      const { added } = await api.addShoppingListFromRecipe(recipe.id, displayServings);
+      setShoppingMessage(`買い物リストに${added}品目を追加しました`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "買い物リストへの追加に失敗しました");
+    } finally {
+      setShoppingBusy(false);
+    }
   }
 
   async function onToggleHall() {
@@ -172,7 +189,17 @@ function DetailInner() {
             }}
           />
           <span>人前</span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void onAddToShoppingList()}
+            disabled={shoppingBusy}
+            style={{ marginLeft: "auto" }}
+          >
+            買い物リストに追加
+          </button>
         </div>
+        {shoppingMessage ? <p className="hint">{shoppingMessage}</p> : null}
         <h2>材料</h2>
         {ingredientRows.length === 0 ? (
           <p className="hint">材料がありません</p>

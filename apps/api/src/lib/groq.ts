@@ -81,6 +81,95 @@ export async function formatRecipeWithGroq(
   return normalizeAiResult(parsed);
 }
 
+export type RecommendationCandidate = {
+  recipeId: string;
+  name: string;
+  cookCount: number;
+  avgRating: number | null;
+  daysSinceLastCooked: number;
+  isHallOfFame: boolean;
+};
+
+export type RecentCookLogEntry = {
+  recipeName: string;
+  cookedAt: string;
+};
+
+export type AiRecommendResult = {
+  recipeId: string;
+  comment: string;
+};
+
+const RECOMMEND_SYSTEM = `あなたは家庭料理の献立アシスタントです。
+渡された「候補レシピ一覧」の中から今日の献立に最も良さそうなものを1つだけ選び、
+「最近の調理履歴」も踏まえて、選んだ理由を家族向けに一言(40字程度、日本語)で書いてください。
+必ず次のJSONオブジェクトだけを出力してください。
+{
+  "recipeId": "候補一覧にあるIDのいずれか",
+  "comment": "選んだ理由の一言"
+}
+ルール:
+- recipeId は候補一覧に存在するものだけを使う(捏造しない)
+- 最近作ったばかりのものより、しばらく作っていないものや家族の評価が高いものを優先する
+- 直近の調理履歴で偏っている食材・ジャンルがあれば、変化をつける提案を意識する
+- JSON以外は出力しない`;
+
+export async function pickRecommendationWithGroq(
+  apiKey: string,
+  candidates: RecommendationCandidate[],
+  recentLogs: RecentCookLogEntry[],
+): Promise<AiRecommendResult> {
+  const userContent = [
+    "候補レシピ一覧:",
+    JSON.stringify(candidates, null, 0),
+    "",
+    "最近の調理履歴(新しい順):",
+    JSON.stringify(recentLogs, null, 0),
+  ].join("\n");
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: RECOMMEND_SYSTEM },
+        { role: "user", content: userContent },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw mapGroqHttpError(res.status, body);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Groqから有効な応答がありませんでした");
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("AI出力のJSONパースに失敗しました");
+  }
+
+  const o = parsed as Record<string, unknown>;
+  const recipeId = String(o.recipeId ?? "").trim();
+  const comment = String(o.comment ?? "").trim();
+  if (!recipeId) throw new Error("AIがレシピを選べませんでした");
+
+  return { recipeId, comment };
+}
+
 function mapGroqHttpError(status: number, body: string): GroqApiError {
   if (status === 429) {
     return new GroqApiError(

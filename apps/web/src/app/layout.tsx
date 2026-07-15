@@ -17,14 +17,14 @@ const display = Shippori_Mincho({
 });
 
 export const metadata: Metadata = {
-  title: "家庭料理ログ",
+  title: "tsukutta",
   description:
     "気になるレシピの出典を残し、うちの版として保存・アレンジする。作ったら記録する。",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "うちの味",
+    title: "tsukutta",
   },
   icons: {
     icon: [

@@ -1,6 +1,6 @@
 {
-  "name": "家庭料理ログ",
-  "short_name": "うちの味",
+  "name": "tsukutta",
+  "short_name": "tsukutta",
   "description": "気になるレシピの出典を残し、うちの版として保存・アレンジする。作ったら家族でレビューする。",
   "start_url": "/home",
   "id": "/home",

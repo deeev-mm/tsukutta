@@ -41,7 +41,7 @@ export default function RegisterPage() {
   return (
     <div className="container" style={{ paddingTop: 48 }}>
       <p className="brand" style={{ fontSize: "1.6rem" }}>
-        家庭料理ログ
+        tsukutta
       </p>
       <h1>親ユーザー登録</h1>
       <p className="hint" style={{ marginBottom: 20 }}>
@@ -84,7 +84,7 @@ export default function RegisterPage() {
             id="familyName"
             value={familyName}
             onChange={(e) => setFamilyName(e.target.value)}
-            placeholder="例: みやざき家"
+            placeholder="例: たなか家"
           />
         </div>
         <div className="field">

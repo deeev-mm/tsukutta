@@ -1,4 +1,4 @@
-// 家庭料理ログ: 最小限のオフライン対応。
+// tsukutta: 最小限のオフライン対応。
 // APIリクエスト(別オリジンのWorkers)は横取りせず、同一オリジンの静的アセット/ページのみを
 // network-first + キャッシュフォールバックで扱う。認証済みJSONのキャッシュは行わない。
 const CACHE_NAME = "tsukutta-shell-v1";

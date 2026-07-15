@@ -31,7 +31,7 @@ export function AdminShell({
         <div className={styles.headerRow}>
           <div>
             <Link href="/admin" className={`brand ${styles.brand}`}>
-              家庭料理ログ・管理
+              tsukutta・管理
             </Link>
             {title ? <p className={styles.pageTitle}>{title}</p> : null}
           </div>

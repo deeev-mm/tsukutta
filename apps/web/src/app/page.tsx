@@ -18,7 +18,7 @@ export default function LandingPage() {
     <div className={styles.hero}>
       <div className={styles.veil} />
       <div className={`container ${styles.content} fade-in`}>
-        <p className={`brand ${styles.brand}`}>家庭料理ログ</p>
+        <p className={`brand ${styles.brand}`}>tsukutta</p>
         <h1 className={styles.headline}>うちの版として残す、家族のレシピ帳</h1>
         <p className={styles.lead}>
           出典を控え、コピペをAIで整え、作った日と一言を家族の記録に。

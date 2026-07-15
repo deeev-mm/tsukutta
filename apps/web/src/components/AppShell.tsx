@@ -28,7 +28,7 @@ export function AppShell({
       <header className={styles.header}>
         <div className="container">
           <Link href="/home" className={`brand ${styles.brand}`}>
-            家庭料理ログ
+            tsukutta
           </Link>
           {title ? <p className={styles.pageTitle}>{title}</p> : null}
         </div>

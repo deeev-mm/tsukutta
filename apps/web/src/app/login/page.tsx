@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="container" style={{ paddingTop: 48 }}>
       <p className="brand" style={{ fontSize: "1.6rem" }}>
-        家庭料理ログ
+        tsukutta
       </p>
       <h1>ログイン</h1>
       <p className="hint" style={{ marginBottom: 20 }}>

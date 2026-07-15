@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
   return (
     <div className="container" style={{ paddingTop: 48 }}>
       <p className="brand" style={{ fontSize: "1.4rem" }}>
-        家庭料理ログ・管理
+        tsukutta・管理
       </p>
       <h1>管理者ログイン</h1>
       <form className="panel" onSubmit={onSubmit}>

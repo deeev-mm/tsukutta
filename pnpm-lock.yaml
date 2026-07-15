@@ -10,7 +10,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@pf08/shared':
+      '@tsukutta/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       drizzle-orm:
@@ -35,7 +35,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@pf08/shared':
+      '@tsukutta/shared':
         specifier: workspace:^
         version: link:../../packages/shared
       next:

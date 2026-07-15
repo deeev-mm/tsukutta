@@ -1,4 +1,4 @@
-import { GROQ_STORAGE_KEY, type SessionUser } from "@pf08/shared";
+import { GROQ_STORAGE_KEY, type SessionUser } from "@tsukutta/shared";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||

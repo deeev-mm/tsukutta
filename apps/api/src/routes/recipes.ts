@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { and, desc, eq, inArray, like } from "drizzle-orm";
-import { normalizeIngredientsToOneServing } from "@pf08/shared";
+import { normalizeIngredientsToOneServing } from "@tsukutta/shared";
 import { categories, cookLogs, recipeCategories, recipes } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireCookRole } from "../lib/auth";

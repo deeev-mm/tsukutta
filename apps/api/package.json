@@ -1,5 +1,5 @@
 {
-  "name": "@pf08/api",
+  "name": "@tsukutta/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pf08/shared": "workspace:*",
+    "@tsukutta/shared": "workspace:*",
     "drizzle-orm": "^0.39.3",
     "hono": "^4.7.2"
   },

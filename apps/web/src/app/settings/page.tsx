@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { GROQ_API_KEY_URL } from "@pf08/shared";
+import { GROQ_API_KEY_URL } from "@tsukutta/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type Category, type FamilyUser } from "@/lib/api";

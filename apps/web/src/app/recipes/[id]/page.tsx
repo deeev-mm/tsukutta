@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { scaleIngredientRows } from "@pf08/shared";
+import { scaleIngredientRows } from "@tsukutta/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type Recipe } from "@/lib/api";

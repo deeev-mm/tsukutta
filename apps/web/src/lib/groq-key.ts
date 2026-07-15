@@ -1,6 +1,6 @@
 "use client";
 
-import { GROQ_STORAGE_KEY } from "@pf08/shared";
+import { GROQ_STORAGE_KEY } from "@tsukutta/shared";
 import { useEffect, useState } from "react";
 
 export function useGroqKey() {

@@ -7,7 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type Category, type Recipe } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { scaleIngredients } from "@pf08/shared";
+import { scaleIngredients } from "@tsukutta/shared";
 
 export default function EditRecipePage() {
   return (

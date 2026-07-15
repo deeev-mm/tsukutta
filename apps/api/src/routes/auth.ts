@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { setCookie, deleteCookie, getCookie } from "hono/cookie";
 import { eq } from "drizzle-orm";
-import { MIN_PASSWORD_LENGTH, type SessionUser } from "@pf08/shared";
+import { MIN_PASSWORD_LENGTH, type SessionUser } from "@tsukutta/shared";
 import { families, sessions, users } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth } from "../lib/auth";
@@ -146,7 +146,7 @@ authRoutes.post("/login", async (c) => {
 });
 
 authRoutes.post("/logout", requireAuth, async (c) => {
-  const cookieName = c.env.SESSION_COOKIE_NAME || "pf08_session";
+  const cookieName = c.env.SESSION_COOKIE_NAME || "tsukutta_session";
   const token = getCookie(c, cookieName);
   if (token) {
     const db = c.get("db");
@@ -179,7 +179,7 @@ async function issueSession(c: Context<App>, user: SessionUser) {
     createdAt: ts,
   });
 
-  const cookieName = c.env.SESSION_COOKIE_NAME || "pf08_session";
+  const cookieName = c.env.SESSION_COOKIE_NAME || "tsukutta_session";
   const isLocal = (c.env.APP_BASE_URL || "").includes("localhost");
   setCookie(c, cookieName, token, {
     httpOnly: true,

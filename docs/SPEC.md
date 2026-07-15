@@ -114,7 +114,7 @@ Phase 2: 必要なら親が追加アカウントを発行
 | バックエンド | Hono on Cloudflare Workers | `apps/api` |
 | DB | Cloudflare D1（SQLite互換） | |
 | ORM | Drizzle | スキーマは `apps/api` |
-| 共有 | `@pf08/shared` | 分量換算・材料行パース等 |
+| 共有 | `@tsukutta/shared` | 分量換算・材料行パース等 |
 | 画像 | Cloudflare R2 | レシピサムネイル（任意・1枚） |
 | AI整形 | Groq API（デフォルト `llama-3.1-8b-instant`） | コピペ → 構造化JSON。キーは localStorage（§3.3） |
 | デプロイ | Pages + Workers | 無料枠優先 |
@@ -1210,7 +1210,7 @@ https://api.xxx.workers.dev  （Hono）
 
 | 変数名（例） | 置場 | 説明 |
 |---|---|---|
-| `CORS_ALLOWED_ORIGINS` | Workers | 許可する UI の Origin（カンマ区切り可）。例: `https://pf-08.pages.dev,http://localhost:3000` |
+| `CORS_ALLOWED_ORIGINS` | Workers | 許可する UI の Origin（カンマ区切り可）。例: `https://tsukutta.pages.dev,http://localhost:3000` |
 | `APP_BASE_URL` | Workers / Pages | アプリ本体 URL（リダイレクト・Cookie 用） |
 | `NEXT_PUBLIC_API_BASE_URL` | Pages（公開可） | フロントから叩く API のベース URL |
 
@@ -1322,7 +1322,7 @@ https://api.xxx.workers.dev  （Hono）
 | tags | 自由記述タグ（任意）。分類の本線は Category |
 | isSuspended | Family の停止フラグ（Admin）。停止中はログイン・書き込み不可 |
 | admin_audit_logs | Admin 操作の監査記録 |
-| localStorage キー | `pf08.groqApiKey` … ユーザー自身の Groq APIキー（サーバー非保存） |
+| localStorage キー | `tsukutta.groqApiKey` … ユーザー自身の Groq APIキー（サーバー非保存） |
 
 ---
 

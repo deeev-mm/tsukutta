@@ -1,19 +1,19 @@
 {
-  "name": "pf-08",
+  "name": "tsukutta",
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --filter @pf08/api --filter @pf08/web dev",
-    "dev:web": "pnpm --filter @pf08/web dev",
-    "dev:api": "pnpm --filter @pf08/api dev",
+    "dev": "pnpm -r --parallel --filter @tsukutta/api --filter @tsukutta/web dev",
+    "dev:web": "pnpm --filter @tsukutta/web dev",
+    "dev:api": "pnpm --filter @tsukutta/api dev",
     "build": "pnpm -r build",
-    "db:generate": "pnpm --filter @pf08/api db:generate",
-    "db:migrate:local": "pnpm --filter @pf08/api db:migrate:local",
-    "db:seed:local": "pnpm --filter @pf08/api db:seed:local",
-    "setup:local": "pnpm --filter @pf08/api setup:local",
+    "db:generate": "pnpm --filter @tsukutta/api db:generate",
+    "db:migrate:local": "pnpm --filter @tsukutta/api db:migrate:local",
+    "db:seed:local": "pnpm --filter @tsukutta/api db:seed:local",
+    "setup:local": "pnpm --filter @tsukutta/api setup:local",
     "typecheck": "pnpm -r typecheck"
   },
   "volta": {

@@ -1,5 +1,5 @@
 {
-  "name": "@pf08/web",
+  "name": "@tsukutta/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pf08/shared": "workspace:^",
+    "@tsukutta/shared": "workspace:^",
     "next": "15.5.22",
     "react": "19.1.0",
     "react-dom": "19.1.0"

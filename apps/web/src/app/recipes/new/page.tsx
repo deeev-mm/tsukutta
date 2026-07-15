@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GROQ_API_KEY_URL } from "@pf08/shared";
+import { GROQ_API_KEY_URL } from "@tsukutta/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type Category } from "@/lib/api";

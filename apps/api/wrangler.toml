@@ -1,4 +1,4 @@
-name = "pf08-api"
+name = "tsukutta-api"
 main = "src/index.ts"
 compatibility_date = "2025-02-24"
 compatibility_flags = ["nodejs_compat"]
@@ -16,4 +16,4 @@ bucket_name = "family-cook-log-images"
 [vars]
 CORS_ALLOWED_ORIGINS = "http://localhost:3000"
 APP_BASE_URL = "http://localhost:3000"
-SESSION_COOKIE_NAME = "pf08_session"
+SESSION_COOKIE_NAME = "tsukutta_session"

@@ -23,7 +23,7 @@ import {
   type Env,
 } from "../lib/crypto";
 
-const ADMIN_COOKIE = "pf08_admin_session";
+const ADMIN_COOKIE = "tsukutta_admin_session";
 const SESSION_DAYS = 14;
 
 type AdminApp = { Bindings: Env; Variables: AppVariables };

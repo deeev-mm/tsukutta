@@ -1,4 +1,4 @@
-import type { AiFormatResult } from "@pf08/shared";
+import type { AiFormatResult } from "@tsukutta/shared";
 
 const SYSTEM = `あなたは家庭料理のレシピ整形アシスタントです。
 ユーザーがコピペした雑なレシピ本文（サイトのフッターやレビューが混ざっていてもよい）から、料理の本体だけを抜き出して、次のJSONオブジェクトだけを出力してください。

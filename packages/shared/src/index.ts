@@ -25,7 +25,7 @@ export type IngredientRow = {
   amount: string;
 };
 
-export const GROQ_STORAGE_KEY = "pf08.groqApiKey";
+export const GROQ_STORAGE_KEY = "tsukutta.groqApiKey";
 
 /** Groq Console で APIキーを発行するページ */
 export const GROQ_API_KEY_URL = "https://console.groq.com/keys";

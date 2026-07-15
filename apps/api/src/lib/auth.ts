@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
 import { and, eq, gt } from "drizzle-orm";
-import type { SessionUser } from "@pf08/shared";
+import type { SessionUser } from "@tsukutta/shared";
 import { createDb } from "../db/client";
 import { families, sessions, users } from "../db/schema";
 import type { Env } from "./crypto";
@@ -24,7 +24,7 @@ export const requireAuth = createMiddleware<{
   Bindings: Env;
   Variables: AppVariables;
 }>(async (c, next) => {
-  const cookieName = c.env.SESSION_COOKIE_NAME || "pf08_session";
+  const cookieName = c.env.SESSION_COOKIE_NAME || "tsukutta_session";
   const token = getCookie(c, cookieName);
   if (!token) {
     return c.json({ error: "ログインが必要です" }, 401);

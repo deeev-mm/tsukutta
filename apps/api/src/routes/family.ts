@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
-import { MIN_PASSWORD_LENGTH } from "@pf08/shared";
+import { MIN_PASSWORD_LENGTH } from "@tsukutta/shared";
 import { users } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireOwnerRole } from "../lib/auth";

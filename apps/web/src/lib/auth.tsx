@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { SessionUser } from "@pf08/shared";
+import type { SessionUser } from "@tsukutta/shared";
 import { api, ApiError } from "./api";
 
 type AuthState = {

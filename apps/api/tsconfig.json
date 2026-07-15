@@ -10,7 +10,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@pf08/shared": ["../../packages/shared/src/index.ts"]
+      "@tsukutta/shared": ["../../packages/shared/src/index.ts"]
     }
   },
   "include": ["src", "drizzle.config.ts"]

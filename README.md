@@ -6,7 +6,7 @@
 調理者向けに、レシピ本文・サムネ・メモの保存と編集も持たせる Web アプリです。  
 ユーザーは **家族単位** で増え、親ユーザー（Owner）は最初から調理者としても使えます。
 
-詳細仕様（正） [docs/SPEC.md](./docs/SPEC.md)（v0.7.0）  
+詳細仕様（正） [docs/SPEC.md](./docs/SPEC.md)（v0.8.5）  
 提案書 [docs/PROPOSAL_FOR_NON_ENGINEERS.md](./docs/PROPOSAL_FOR_NON_ENGINEERS.md)
 
 ---

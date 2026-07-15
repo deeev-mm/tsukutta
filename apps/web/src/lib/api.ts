@@ -118,6 +118,24 @@ export type ShoppingListItem = {
   updatedAt: string;
 };
 
+export type MealProposalCandidate = {
+  id: string;
+  recipeId: string;
+  recipeName: string;
+  recipeImageUrl: string | null;
+  votes: Array<{ userId: string; displayName: string }>;
+};
+
+export type MealProposal = {
+  id: string;
+  forDate: string;
+  status: "open" | "decided";
+  decidedRecipeId: string | null;
+  decidedAt: string | null;
+  myVoteCandidateId: string | null;
+  candidates: MealProposalCandidate[];
+};
+
 export type AdminInfo = { id: string; loginId: string };
 
 export type AdminFamily = {
@@ -432,6 +450,40 @@ export const api = {
     request<{ ok: boolean }>(`/api/v1/shopping-list/${id}`, { method: "DELETE" }),
   clearCheckedShoppingListItems: () =>
     request<{ ok: boolean }>("/api/v1/shopping-list/checked", { method: "DELETE" }),
+
+  getMealProposal: (date?: string) =>
+    request<{ proposal: MealProposal | null; forDate: string }>(
+      `/api/v1/meal-proposals${date ? `?date=${date}` : ""}`,
+    ),
+  createMealProposal: (body: { forDate?: string; recipeIds: string[] }) =>
+    request<{ proposal: MealProposal }>("/api/v1/meal-proposals", {
+      method: "POST",
+      json: body,
+    }),
+  addMealProposalCandidate: (proposalId: string, recipeId: string) =>
+    request<{ proposal: MealProposal }>(`/api/v1/meal-proposals/${proposalId}/candidates`, {
+      method: "POST",
+      json: { recipeId },
+    }),
+  removeMealProposalCandidate: (proposalId: string, candidateId: string) =>
+    request<{ proposal: MealProposal }>(
+      `/api/v1/meal-proposals/${proposalId}/candidates/${candidateId}`,
+      { method: "DELETE" },
+    ),
+  voteMealProposal: (proposalId: string, candidateId: string) =>
+    request<{ proposal: MealProposal }>(`/api/v1/meal-proposals/${proposalId}/vote`, {
+      method: "PUT",
+      json: { candidateId },
+    }),
+  retractMealProposalVote: (proposalId: string) =>
+    request<{ proposal: MealProposal }>(`/api/v1/meal-proposals/${proposalId}/vote`, {
+      method: "DELETE",
+    }),
+  decideMealProposal: (proposalId: string, candidateId: string) =>
+    request<{ proposal: MealProposal }>(`/api/v1/meal-proposals/${proposalId}/decide`, {
+      method: "POST",
+      json: { candidateId },
+    }),
 
   // --- Admin ---
   adminLogin: (loginId: string, password: string) =>

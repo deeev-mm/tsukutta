@@ -199,6 +199,71 @@ export const adminSessions = sqliteTable(
   }),
 );
 
+export const mealProposals = sqliteTable(
+  "meal_proposals",
+  {
+    id: text("id").primaryKey(),
+    familyId: text("family_id")
+      .notNull()
+      .references(() => families.id),
+    forDate: text("for_date").notNull(), // YYYY-MM-DD
+    status: text("status").notNull().default("open"), // open | decided
+    decidedRecipeId: text("decided_recipe_id").references(() => recipes.id),
+    decidedAt: text("decided_at"),
+    createdByUserId: text("created_by_user_id").references(() => users.id),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    familyDateUq: uniqueIndex("meal_proposals_family_date_uq").on(t.familyId, t.forDate),
+  }),
+);
+
+export const mealProposalCandidates = sqliteTable(
+  "meal_proposal_candidates",
+  {
+    id: text("id").primaryKey(),
+    proposalId: text("proposal_id")
+      .notNull()
+      .references(() => mealProposals.id, { onDelete: "cascade" }),
+    recipeId: text("recipe_id")
+      .notNull()
+      .references(() => recipes.id),
+    addedByUserId: text("added_by_user_id").references(() => users.id),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => ({
+    proposalRecipeUq: uniqueIndex("meal_proposal_candidates_uq").on(
+      t.proposalId,
+      t.recipeId,
+    ),
+  }),
+);
+
+export const mealProposalVotes = sqliteTable(
+  "meal_proposal_votes",
+  {
+    id: text("id").primaryKey(),
+    proposalId: text("proposal_id")
+      .notNull()
+      .references(() => mealProposals.id, { onDelete: "cascade" }),
+    candidateId: text("candidate_id")
+      .notNull()
+      .references(() => mealProposalCandidates.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    proposalUserUq: uniqueIndex("meal_proposal_votes_proposal_user_uq").on(
+      t.proposalId,
+      t.userId,
+    ),
+  }),
+);
+
 export const shoppingListItems = sqliteTable(
   "shopping_list_items",
   {

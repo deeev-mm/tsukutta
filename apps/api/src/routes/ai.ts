@@ -69,6 +69,9 @@ aiRoutes.post("/format", async (c) => {
  */
 aiRoutes.post("/recommend", async (c) => {
   const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
   const db = c.get("db");
 
   const body = await c.req.json<{ clientApiKey?: string | null }>();

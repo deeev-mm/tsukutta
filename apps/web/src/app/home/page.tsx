@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
+import { TodayMealSection } from "@/components/TodayMealSection";
 import { api, ApiError, type CookLog, type Recipe, type RankingEntry } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useGroqKey } from "@/lib/groq-key";
@@ -95,6 +96,9 @@ function HomeInner() {
         )}
       </div>
 
+      <TodayMealSection />
+
+      {user?.role !== "reviewer" ? (
       <section className="panel" style={{ marginBottom: 16 }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h2 style={{ margin: 0 }}>今日のおすすめをAIに聞く</h2>
@@ -128,6 +132,7 @@ function HomeInner() {
           </>
         )}
       </section>
+      ) : null}
 
       {recs.length > 0 ? (
         <section className="panel" style={{ marginBottom: 16 }}>

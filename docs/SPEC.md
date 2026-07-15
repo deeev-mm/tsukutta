@@ -2,9 +2,9 @@
 
 | 項目 | 内容 |
 |---|---|
-| バージョン | 0.7.0 |
-| 更新日 | 2026-07-30 |
-| ステータス | **Phase 1–3 実装済み**（ローカル動作確認済み） |
+| バージョン | 0.8.5 |
+| 更新日 | 2026-08-04 |
+| ステータス | **Phase 1–4 実装済み**（ローカル動作確認済み） |
 
 ---
 
@@ -162,13 +162,20 @@ Hono (Workers)
 {
   "name": "肉じゃが",
   "sourceServings": 2,
-  "ingredients": ["じゃがいも 3個", "豚肉 200g"],
+  "ingredients": [
+    { "name": "じゃがいも", "amount": "3個", "isSection": false },
+    { "name": "合わせ調味料", "amount": "", "isSection": true },
+    { "name": "醤油", "amount": "大さじ2", "isSection": false }
+  ],
   "instructions": ["切る", "炒める", "煮る"],
   "notes": "次は砂糖控えめ"
 }
 ```
 
-※ AIが材料名と分量を交互行で出す場合がある。表示時はアプリ側で「材料名 / 使用量」にまとめてよい（§3.7）。
+※ 材料は **AI出力の時点で「材料名」「分量」を別フィールドに分けて**もらう（v0.8.0〜）。以前は1行の文字列（例:
+`"じゃがいも 3個"`）を正規表現で名前/分量に推測分割していたが、複雑な表記で誤爆しやすかったため廃止した。
+`isSection:true` の行は「合わせ調味料」等の小見出しを表す（amountは使わない）。
+既存レシピ（旧: 文字列配列で保存されたもの）は読み込み時にヒューリスティックで自動変換し、後方互換を保つ（DBマイグレーション不要）。
 
 #### 登録フロー（本線）
 
@@ -277,7 +284,7 @@ DB上の材料は常に **1人前** に正規化して保存し、表示時に�
 
 | 項目 | 説明 |
 |---|---|
-| ingredients | **1人前** に正規化した材料リスト（DBの正） |
+| ingredients | **1人前** に正規化した材料リスト（DBの正）。`{ name, amount, isSection }` の構造化配列（§3.3）。分量換算は `amount` フィールドのみを対象に行う |
 | sourceServings | 登録・編集時にユーザーが入力した「何人分の分量か」（正規化の分母。メタとして保持してよい） |
 
 保存時（正規化）:
@@ -303,10 +310,9 @@ displayServings … レシピページ上の「何人前」表示用の数値（
 
 - **人前表記は数値 input**（例: `[ 4 ] 人前`）
 - デフォルト値は **家族設定の `householdSize`**
-- 材料は **テーブル表示**（列: **材料** / **使用量**）
-  - 1行に「材料名 + 分量」がある場合は分割して表示
-  - AI等が「材料名」「分量」を交互行で出している場合は1行にまとめる
-  - `☆調味料` や `仕上げ用` など見出し行はセクション行として全幅表示してよい
+- 材料は **テーブル表示**（列: **材料** / **使用量**）。`name`/`amount` を持つ構造化データをそのまま表示するだけで、名前と分量の分割は不要（登録・編集画面でユーザーが直接2カラム入力する）
+  - `isSection:true` の行は見出し行として全幅表示
+  - 材料・手順の入力は行の追加/削除/並び替えができるリストUI（textarea＋改行split は廃止。v0.8.0〜）
 - 使用量列は、その input の値（`displayServings`）で裏計算した結果を表示する
 - input を変えるとその場で使用量が切り替わる（ページリロード不要）
 - `displayServings` は表示用の一時状態。家族設定やレシピ本体は変更しない
@@ -416,7 +422,7 @@ Family（家族テナント）
 | familyId | string | ○ | FK → Family |
 | name | string | ○ | 料理名 |
 | sourceUrl | string? | | 出典URL（参照のみ） |
-| ingredients | JSON (string[]) | | 材料（**常に1人前**に正規化済み） |
+| ingredients | JSON (`{name, amount, isSection}[]`) | | 材料（**常に1人前**に正規化済み）。旧形式（string[]、v0.8.0以前）も読み込み時に自動変換して後方互換（§3.3） |
 | instructions | JSON (string[]) | | 手順 |
 | sourceServings | number? | | 登録・編集時に入力した人数（正規化の分母の記録。任意） |
 | servingsLabel | string? | | 表示用（「2〜3人分」など自由記述。任意） |
@@ -510,6 +516,77 @@ Family（家族テナント）
 
 - 旧 `Member` → `User` に統合済み
 - 旧 `AppSettings.householdSize` → `Family.householdSize` に統合済み
+
+### 4.4b ShoppingListItem（買い物リスト）— v0.8.0〜
+
+家族で共有する1本の買い物チェックリスト。レシピ単体の機能ではなく、**献立の決定（§4.4c）や
+レシピ詳細から材料をまとめて追加**して使う前提。
+
+| フィールド | 型 | 必須 | 説明 |
+|---|---|---|---|
+| id | string | ○ | PK |
+| familyId | string | ○ | FK → Family |
+| name | string | ○ | 品目（例: `牛乳`、レシピから追加時は `豚肉 200g` のように分量込み） |
+| sourceRecipeId | string? | | どのレシピから追加されたか（任意・削除時は null） |
+| isChecked | boolean | ○ | 買った/チェック済み |
+| createdAt / updatedAt | datetime | ○ | |
+
+- ロール制限なし（Owner/Cook/Reviewer 全員が追加・チェック・削除可能）。家族の運用調整のためのツールであり、
+  レシピ内容の編集権限とは切り離す
+- レシピ詳細から追加する場合、材料を表示中の人前で換算してから1品目ずつ登録する（`isSection` の行は除く）
+- チェック済み品目は「まとめて削除」で一括クリア可能
+
+### 4.4c MealProposal / MealProposalCandidate / MealProposalVote（今日のご飯提案・投票）— v0.8.0〜
+
+「今日のご飯何がいい?」を家族で決めるための投票フロー。**買い物リスト単体では使われにくい**ため、
+「候補を出す → 投票 → 決定 → 買い物リストへ連携」の一直線の流れの起点として設計する。
+
+方針:
+- 候補は **調理者（Owner/Cook）だけ**が既存レシピから選んで追加できる（全レシピからの自由投票にはしない）
+- 投票は **家族全員**（Reviewer含む）が可能。1人1票（同じ提案内で投票先を後から変更・取り消し可）
+- 決定は **調理者/Owner が手動で「これに決定」を押す**（投票数の自動確定はしない）
+- 1家族・1日（`forDate`）につき提案は1本まで（`(familyId, forDate)` ユニーク）
+- 決定後は候補追加・投票を締め切る（`status: "decided"`）。ホーム画面に「今日はこれを作ることにしました」として表示し、
+  そこから買い物リストへの一括追加・「作った」記録への導線を出す
+
+**MealProposal**
+
+| フィールド | 型 | 必須 | 説明 |
+|---|---|---|---|
+| id | string | ○ | PK |
+| familyId | string | ○ | FK → Family |
+| forDate | date (`YYYY-MM-DD`) | ○ | 対象の日（既定は当日。翌日以降を先に決めることも可） |
+| status | `"open" \| "decided"` | ○ | |
+| decidedRecipeId | string? | | 決定したレシピ（FK → Recipe） |
+| decidedAt | datetime? | | |
+| createdByUserId | string? | | 作成した調理者 |
+| createdAt / updatedAt | datetime | ○ | |
+
+制約: `(familyId, forDate)` ユニーク。
+
+**MealProposalCandidate**
+
+| フィールド | 型 | 必須 | 説明 |
+|---|---|---|---|
+| id | string | ○ | PK |
+| proposalId | string | ○ | FK → MealProposal（cascade delete） |
+| recipeId | string | ○ | FK → Recipe |
+| addedByUserId | string? | | |
+| createdAt | datetime | ○ | |
+
+制約: `(proposalId, recipeId)` ユニーク。
+
+**MealProposalVote**
+
+| フィールド | 型 | 必須 | 説明 |
+|---|---|---|---|
+| id | string | ○ | PK |
+| proposalId | string | ○ | FK → MealProposal（cascade delete） |
+| candidateId | string | ○ | FK → MealProposalCandidate（cascade delete） |
+| userId | string | ○ | FK → User |
+| createdAt / updatedAt | datetime | ○ | |
+
+制約: `(proposalId, userId)` ユニーク（1提案につき1票。`candidateId` を上書きして投票先を変更）。
 
 ---
 
@@ -849,6 +926,40 @@ INDEX: `idx_admin_audit_logs_created_at` ON `admin_audit_logs(created_at DESC)`
 - 破壊的・権限系の Admin 操作は必ず1行残す
 - レシピ本文やレビュー本文は対象外（Admin が触らないため）
 
+#### `login_attempts`（ブルートフォース対策）— v0.8.0〜
+
+| カラム | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|
+| id | TEXT | NO | PK | |
+| scope | TEXT | NO | | `user` \| `admin` |
+| identifier | TEXT | NO | | 小文字化・trim済みの login_id |
+| failed_count | INTEGER | NO | DEFAULT 0 | |
+| locked_until | TEXT | YES | | 設定されていて現在時刻より未来ならロック中 |
+| updated_at | TEXT | NO | | |
+
+UNIQUE `(scope, identifier)`。5回失敗で15分ロック、成功時はレコード削除。
+
+#### `shopping_list_items`（§4.4b）
+
+| カラム | 型 | NULL | 制約 | 説明 |
+|---|---|---|---|---|
+| id | TEXT | NO | PK | |
+| family_id | TEXT | NO | FK → families(id) | |
+| name | TEXT | NO | | |
+| source_recipe_id | TEXT | YES | FK → recipes(id) ON DELETE SET NULL | |
+| is_checked | INTEGER | NO | DEFAULT 0 | |
+| created_at / updated_at | TEXT | NO | | |
+
+INDEX: `idx_shopping_list_family_id` ON `shopping_list_items(family_id, is_checked)`
+
+#### `meal_proposals` / `meal_proposal_candidates` / `meal_proposal_votes`（§4.4c）
+
+物理設計はドメインモデル（§4.4c）のフィールド定義に準拠。制約のみ再掲:
+
+- `meal_proposals`: UNIQUE `(family_id, for_date)`
+- `meal_proposal_candidates`: UNIQUE `(proposal_id, recipe_id)`、`proposal_id` は ON DELETE CASCADE
+- `meal_proposal_votes`: UNIQUE `(proposal_id, user_id)`、`proposal_id` / `candidate_id` は ON DELETE CASCADE
+
 ### 参照されないもの（意図的）
 
 | データ | 置き場 |
@@ -1043,6 +1154,18 @@ CREATE INDEX idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC
 
 ※ AIは Phase 1 必須。カテゴリマスタは Phase 2（カテゴリ別ランキングの前提）。
 
+### Phase 4 — 家族の意思決定・段取り強化（v0.8.0〜）
+
+| ID | 機能 |
+|---|---|
+| F-13 | 買い物リスト（§4.4b）。家族共有の1本のチェックリスト。レシピ詳細から材料を人前換算して一括追加可 |
+| F-14 | 横断検索。レシピ一覧の検索を料理名だけでなく材料・定番メモ・タグにも拡張 |
+| F-15 | バックアップ（JSONエクスポート）。設定画面からレシピ・調理記録・評価を書き出し（画像本体は含まない） |
+| F-16 | AIおすすめ（オンデマンド）。ホーム画面のボタンを押したときだけGroqを呼び、ルールベース候補上位8件＋直近の調理履歴から1品を提案。自動呼び出しはしない（無料枠のトークン消費を抑えるため）。**調理者（Owner/Cook）限定**、Reviewerには非表示 |
+| F-17 | PWA / オフライン対応。manifest・アイコン・Service Workerでアプリシェルをキャッシュし、オフライン時はフォールバック画面を表示（API通信はキャッシュ対象外） |
+| F-18 | 材料の構造化（§3.3・§4.1）。`ingredients` を文字列配列から `{name, amount, isSection}` の構造化配列に変更。AI整形も分量換算もこの形式が前提になり、名前/分量の推測ロジックが不要に |
+| F-19 | 今日のご飯提案・投票（§4.4c）。調理者が候補を出し、家族全員が投票、調理者/Ownerが決定。決定した献立はホームに表示され、買い物リスト追加・「作った」記録に直結する |
+
 ---
 
 ## 6. 画面一覧
@@ -1144,6 +1267,19 @@ Owner ホームの第1ビューは散らさない。主CTAは「レシピを残�
 | GET | `/admin/health` | 2 | D1 疎通など |
 | GET/POST | `/admin/categories` | 2 | カテゴリマスタ一覧・作成（監査ログ推奨） |
 | PATCH | `/admin/categories/:id` | 2 | 名称・並び・有効更新（監査ログ推奨） |
+| POST | `/ai/recommend` | 4 | AIおすすめ（オンデマンド）。**調理者（Owner/Cook）限定**。クライアントキーを都度送信 |
+| GET/POST | `/shopping-list` | 4 | 買い物リスト一覧・品目追加 |
+| POST | `/shopping-list/from-recipe/:recipeId` | 4 | レシピの材料を人前換算して一括追加。`body.servings` 省略時は家族人数 |
+| PATCH/DELETE | `/shopping-list/:id` | 4 | 品目の編集（チェック切替含む）・削除 |
+| DELETE | `/shopping-list/checked` | 4 | チェック済み品目の一括削除 |
+| GET | `/export` | 4 | 家族データのJSONバックアップ（レシピ・調理記録・評価。画像本体は含まない） |
+| GET | `/meal-proposals` | 4 | `?date=` の献立提案取得（既定は当日）。無ければ `proposal: null` |
+| POST | `/meal-proposals` | 4 | 提案作成（Owner/Cook）。`forDate` と候補 `recipeIds` を指定 |
+| POST | `/meal-proposals/:id/candidates` | 4 | 候補追加（Owner/Cook・`open` の間のみ） |
+| DELETE | `/meal-proposals/:id/candidates/:candidateId` | 4 | 候補を外す（Owner/Cook・`open` の間のみ） |
+| PUT/DELETE | `/meal-proposals/:id/vote` | 4 | 投票・投票取り消し（家族全員。`open` の間のみ変更可） |
+| POST | `/meal-proposals/:id/decide` | 4 | 献立を決定（Owner/Cook）。以後は `status: "decided"` |
+
 ### AI整形の呼び出し（Phase 1）
 
 - ブラウザの localStorage キーを整形リクエストに都度添付（**サーバーに永続保存しない**）。デモ Family も同じ
@@ -1245,6 +1381,21 @@ https://api.xxx.workers.dev  （Hono）
 3. Groq キーが localStorage から都度送られ、サーバーに永続保存されていないか
 4. ローカル → 本番 API を叩いていないか（または意図的なら Origin 許可済みか）
 
+### 9.2 セキュリティ強化（v0.8.0〜）
+
+セッションCookieは他オリジン（Pages/Workers）を跨ぐため本番で `SameSite=None` になる。CORSのOriginチェックだけでは
+「ブラウザにレスポンスを読ませない」効果しかなく、更新系リクエスト自体は実行されてしまう（CSRFの隙）。以下で対応:
+
+| 項目 | 内容 |
+|---|---|
+| CSRF対策 | 更新系メソッド（POST/PUT/PATCH/DELETE）は許可Origin以外からのリクエストを実処理前に403で拒否（`corsMiddleware`）。GETは対象外（副作用なし） |
+| ログイン試行制限 | `login_attempts` テーブルで失敗回数を記録し、5回失敗で15分ロックアウト（`/auth/login` `/admin/auth/login` 両方）。成功時はリセット |
+| 画像アップロード | JPEGのAPP1(EXIF)/APP13(IPTC)セグメント、PNGの `eXIf`/`tEXt`/`zTXt`/`iTXt`/`tIME` チャンクをアップロード時にバイナリレベルで除去（位置情報等のメタデータ対策） |
+
+既知の残課題（対応済みではない）:
+- パスワード最短4文字（`MIN_PASSWORD_LENGTH`）は個人開発規模では許容しているが、ロックアウト運用とセットで見直し余地あり
+- Groq APIキーはリクエストごとにAPIサーバーを経由してGroqへ転送される（サーバーに永続保存はしない設計。§3.3）
+
 ---
 
 ## 10. 受け入れ基準
@@ -1279,13 +1430,24 @@ https://api.xxx.workers.dev  （Hono）
 18. Owner/Cook がレシピを殿堂入りにでき、一覧・見返し画面で確認できる
 19. 「また作る」おすすめが記録データから候補を返す
 
+### Phase 4
+
+20. レシピ詳細から材料を人前換算して買い物リストへ一括追加でき、家族間で共有・チェックできる
+21. レシピ一覧の検索が料理名だけでなく材料・定番メモ・タグにもヒットする
+22. 設定画面から家族データ（レシピ・調理記録・評価）をJSONでダウンロードできる
+23. Owner/Cook がホームの「AIにおすすめを聞く」ボタンを押したときだけGroqが呼ばれ、直近の調理履歴を踏まえた1品と理由コメントが返る（自動呼び出しなし。Reviewerには非表示）
+24. PWAとしてホーム画面に追加でき、オフライン時はアプリシェルのフォールバック画面が表示される（API通信はキャッシュしない）
+25. Owner/Cook が候補レシピを選んで献立提案を作成でき、家族全員が投票（変更・取り消し可）、Owner/Cookが決定できる
+26. 決定した献立はホームに表示され、そこから買い物リスト一括追加・「作った」記録に直接進める
+27. 1家族・1日につき献立提案は1本まで。決定後は候補追加・投票ができない
+
 ---
 
 ## 11. 今後の決定事項
 
 | 項目 | 暫定 |
 |---|---|
-| アプリ名 | 未定 |
+| アプリ名 | **tsukutta**（v0.8.3〜。旧: 未定 → 表示名は「家庭料理ログ」を暫定使用していたが、ブランド表記として全画面をtsukuttaに統一） |
 | 認証 | Phase 1 から必須。親=Owner=Cook。家族アカウント発行は Phase 2。パスキーは後続 |
 | LLM提供者 | **Groq**（実装: `llama-3.1-8b-instant`。モデル変更可） |
 | Groq APIキー | **localStorage**（デモ Family も同じ。サーバー非永続）。発行: https://console.groq.com/keys |
@@ -1350,3 +1512,9 @@ https://api.xxx.workers.dev  （Hono）
 | 2026-07-30 | 0.6.2 | Phase 2 実装反映（家族アカウント発行・レビュー・カテゴリ・Admin UI）。ステータスを Phase 1–2 実装済みに更新 |
 | 2026-07-30 | 0.6.3 | カテゴリマスタ CRUD を Owner/Cook（設定画面）でも可能に。Admin は運用補助として維持 |
 | 2026-07-30 | 0.7.0 | Phase 3 実装（ランキング・殿堂入り・また作るおすすめ）。ステータスを Phase 1–3 実装済みに更新 |
+| 2026-08-04 | 0.8.0 | セキュリティ強化: CORSのOriginチェックをCSRF対策として更新系メソッドの実処理前拒否に変更、ログイン試行のロックアウト（5回失敗で15分）、レシピ画像アップロード時のEXIF等メタデータ除去 |
+| 2026-08-04 | 0.8.1 | Phase 4 着手: 買い物リスト（家族共有・レシピからの一括追加）、レシピ検索を材料/メモ/タグにも拡張、家族データのJSONバックアップ、AIおすすめ（オンデマンド。ホームのボタン押下時のみGroqを呼ぶ）、PWA/オフライン対応（manifest・アイコン・Service Worker） |
+| 2026-08-04 | 0.8.2 | 材料データを `{name, amount, isSection}` の構造化配列に変更（旧: 文字列配列＋改行split・正規表現で名前/分量を推測）。AI整形プロンプトも構造化出力に変更。既存レシピは読み込み時に自動変換し後方互換。新規・編集画面の材料/手順入力をリストUI（行の追加・削除・並び替え）に変更 |
+| 2026-08-04 | 0.8.3 | サービス名表記を「家庭料理ログ」から **tsukutta** に統一（ヘッダー・ログイン/登録・Admin・PWA manifest・タブタイトル） |
+| 2026-08-04 | 0.8.4 | 今日のご飯提案・投票機能を追加（MealProposal/Candidate/Vote）。調理者が候補を出し家族全員が投票、調理者/Ownerが決定。決定した献立はホームに表示され買い物リスト追加・「作った」記録に接続 |
+| 2026-08-04 | 0.8.5 | 「AIにおすすめを聞く」を調理者（Owner/Cook）限定に変更。Reviewerには非表示・APIも403で拒否 |

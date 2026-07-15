@@ -1,5 +1,7 @@
 "use client";
 
+import { IconChevronDown, IconChevronUp, IconClose } from "./icons";
+
 const inputStyle: React.CSSProperties = {
   border: "1px solid var(--line)",
   borderRadius: 10,
@@ -51,7 +53,7 @@ export function StepListEditor({
               aria-label="上へ移動"
               style={{ padding: "6px 12px" }}
             >
-              ↑
+              <IconChevronUp />
             </button>
             <button
               type="button"
@@ -61,7 +63,7 @@ export function StepListEditor({
               aria-label="下へ移動"
               style={{ padding: "6px 12px" }}
             >
-              ↓
+              <IconChevronDown />
             </button>
             <button
               type="button"
@@ -70,7 +72,7 @@ export function StepListEditor({
               aria-label="削除"
               style={{ padding: "6px 12px" }}
             >
-              ×
+              <IconClose />
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { api, ApiError, type AdminFamily, type FamilyUser } from "@/lib/api";
+import { IconArrowLeft } from "@/components/icons";
 
 const roleLabel: Record<string, string> = {
   owner: "親",
@@ -64,7 +65,9 @@ function FamilyDetailInner() {
   return (
     <AdminShell title="Family詳細">
       <p className="hint">
-        <Link href="/admin/families">← Family一覧へ</Link>
+        <Link href="/admin/families">
+          <IconArrowLeft /> Family一覧へ
+        </Link>
       </p>
       {error ? <p className="error">{error}</p> : null}
       {busy || !family ? (

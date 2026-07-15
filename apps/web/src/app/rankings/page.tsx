@@ -12,6 +12,7 @@ import {
   type RecommendationEntry,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { IconStar } from "@/components/icons";
 
 type Tab = "ranking" | "hall" | "recommend";
 
@@ -133,9 +134,15 @@ function RankingsInner() {
                   </div>
                   <p className="hint" style={{ margin: "6px 0 0" }}>
                     {r.cookCount}回作った
-                    {r.avgRating != null
-                      ? ` ・ 平均★${r.avgRating}（${r.ratingCount}件）`
-                      : " ・ まだ評価なし"}
+                    {r.avgRating != null ? (
+                      <>
+                        {" ・ 平均"}
+                        <IconStar filled size={13} />
+                        {`${r.avgRating}（${r.ratingCount}件）`}
+                      </>
+                    ) : (
+                      " ・ まだ評価なし"
+                    )}
                     {r.lastCookedAt ? ` ・ 最近 ${r.lastCookedAt}` : ""}
                   </p>
                 </Link>
@@ -191,7 +198,13 @@ function RankingsInner() {
                 ) : null}
                 <p className="hint" style={{ margin: "6px 0 0" }}>
                   {r.reason}
-                  {r.avgRating != null ? ` ・ ★${r.avgRating}` : ""}
+                  {r.avgRating != null ? (
+                    <>
+                      {" ・ "}
+                      <IconStar filled size={13} />
+                      {r.avgRating}
+                    </>
+                  ) : null}
                   {` ・ ${r.cookCount}回`}
                   {r.daysSinceLastCooked > 0
                     ? ` ・ ${r.daysSinceLastCooked}日前`

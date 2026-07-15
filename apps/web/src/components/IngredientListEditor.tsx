@@ -1,6 +1,7 @@
 "use client";
 
 import type { IngredientLine } from "@tsukutta/shared";
+import { IconChevronDown, IconChevronUp, IconClose } from "./icons";
 
 const inputStyle: React.CSSProperties = {
   border: "1px solid var(--line)",
@@ -66,7 +67,7 @@ export function IngredientListEditor({
             aria-label="上へ移動"
             style={{ padding: "10px 12px" }}
           >
-            ↑
+            <IconChevronUp />
           </button>
           <button
             type="button"
@@ -76,7 +77,7 @@ export function IngredientListEditor({
             aria-label="下へ移動"
             style={{ padding: "10px 12px" }}
           >
-            ↓
+            <IconChevronDown />
           </button>
           <button
             type="button"
@@ -85,7 +86,7 @@ export function IngredientListEditor({
             aria-label="削除"
             style={{ padding: "10px 12px" }}
           >
-            ×
+            <IconClose />
           </button>
         </div>
       ))}

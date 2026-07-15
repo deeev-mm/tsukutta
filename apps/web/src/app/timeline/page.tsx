@@ -6,6 +6,8 @@ import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type CookLog, type CookLogRating } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { StarRating } from "@/components/StarRating";
+import { IconStar } from "@/components/icons";
 
 export default function TimelinePage() {
   return (
@@ -134,10 +136,7 @@ function CookLogItem({ log }: { log: CookLog }) {
           {!ratingsReady ? (
             <span className="hint loading-dot">評価を確認中…</span>
           ) : avg != null ? (
-            <span className="stars stars-filled" aria-label={`平均評価 ${avg.toFixed(1)}`}>
-              {"★".repeat(Math.round(avg))}
-              {"☆".repeat(5 - Math.round(avg))}
-            </span>
+            <StarRating value={avg} />
           ) : (
             <span className="hint">まだ評価がありません</span>
           )}
@@ -164,12 +163,7 @@ function CookLogItem({ log }: { log: CookLog }) {
                     <li key={r.id}>
                       <div className="row" style={{ gap: 8 }}>
                         <strong style={{ fontSize: "0.85rem" }}>{r.displayName}</strong>
-                        {r.rating != null ? (
-                          <span className="stars stars-filled">
-                            {"★".repeat(r.rating)}
-                            {"☆".repeat(5 - r.rating)}
-                          </span>
-                        ) : null}
+                        {r.rating != null ? <StarRating value={r.rating} /> : null}
                       </div>
                       {r.comment ? (
                         <p className="hint" style={{ margin: "2px 0 0" }}>
@@ -193,7 +187,7 @@ function CookLogItem({ log }: { log: CookLog }) {
                         onClick={() => setRating(n === rating ? null : n)}
                         aria-label={`${n}つ星`}
                       >
-                        {rating != null && n <= rating ? "★" : "☆"}
+                        <IconStar filled={rating != null && n <= rating} size={22} />
                       </button>
                     ))}
                   </div>

@@ -8,6 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type Recipe } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { IconExternalLink } from "@/components/icons";
 import styles from "./recipe.module.css";
 
 export default function RecipeDetailPage() {
@@ -131,7 +132,7 @@ function DetailInner() {
       {recipe.sourceUrl ? (
         <p>
           <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="muted">
-            出典を開く ↗
+            出典を開く <IconExternalLink size={13} />
           </a>
         </p>
       ) : null}

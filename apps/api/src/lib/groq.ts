@@ -1,18 +1,20 @@
-import type { AiFormatResult } from "@tsukutta/shared";
+import type { AiFormatResult, IngredientLine } from "@tsukutta/shared";
 
 const SYSTEM = `あなたは家庭料理のレシピ整形アシスタントです。
 ユーザーがコピペした雑なレシピ本文（サイトのフッターやレビューが混ざっていてもよい）から、料理の本体だけを抜き出して、次のJSONオブジェクトだけを出力してください。
 {
   "name": "料理名",
   "sourceServings": 人数（数値。不明なら null）,
-  "ingredients": ["材料 分量", "..."],
+  "ingredients": [{"name": "材料名", "amount": "分量（数値・単位・少々/適量などそのまま）", "isSection": false}, ...],
   "instructions": ["手順1", "..."],
   "notes": "定番メモ。なければ空文字"
 }
 ルール:
 - レビュー・関連レシピ・広告・会社案内・ナビ・Play Video は無視する
 - 不明な項目は捏造せず空文字・空配列・nullにする
-- ingredients / instructions は文字列配列。材料は分量付きで1行ずつ
+- ingredients は「材料名」と「分量」を必ず別フィールドに分けること（例: "豚肉 200g" ではなく name:"豚肉", amount:"200g"）
+- 「合わせ調味料」のような小見出しがあれば、isSection:true, name:見出し文字列, amount:"" として1件追加する（通常の材料は isSection:false）
+- instructions は文字列配列。手順は1行ずつ
 - sourceServings は「何人分」から読み取る。不明なら null
 - notes はポイント等の一言。なければ空文字
 - JSON以外は出力しない`;
@@ -206,8 +208,18 @@ function normalizeAiResult(raw: unknown): AiFormatResult {
   const name = String(o.name ?? "").trim();
   if (!name) throw new Error("料理名を抽出できませんでした");
 
-  const ingredients = Array.isArray(o.ingredients)
-    ? o.ingredients.map(String).map((s) => s.trim()).filter(Boolean)
+  const ingredients: IngredientLine[] = Array.isArray(o.ingredients)
+    ? o.ingredients
+        .map((item): IngredientLine | null => {
+          if (!item || typeof item !== "object") return null;
+          const it = item as Record<string, unknown>;
+          const name = String(it.name ?? "").trim();
+          const amount = String(it.amount ?? "").trim();
+          const isSection = Boolean(it.isSection);
+          if (!isSection && !name && !amount) return null;
+          return { name, amount, isSection };
+        })
+        .filter((row): row is IngredientLine => row !== null)
     : [];
   const instructions = Array.isArray(o.instructions)
     ? o.instructions.map(String).map((s) => s.trim()).filter(Boolean)

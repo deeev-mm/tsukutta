@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GROQ_API_KEY_URL } from "@tsukutta/shared";
+import { GROQ_API_KEY_URL, type IngredientLine } from "@tsukutta/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
+import { IngredientListEditor } from "@/components/IngredientListEditor";
+import { StepListEditor } from "@/components/StepListEditor";
 import { api, ApiError, type Category } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useGroqKey } from "@/lib/groq-key";
@@ -14,8 +16,8 @@ type Draft = {
   name: string;
   sourceUrl: string;
   sourceServings: number;
-  ingredientsText: string;
-  instructionsText: string;
+  ingredients: IngredientLine[];
+  instructions: string[];
   notes: string;
 };
 
@@ -23,8 +25,8 @@ const emptyDraft: Draft = {
   name: "",
   sourceUrl: "",
   sourceServings: 2,
-  ingredientsText: "",
-  instructionsText: "",
+  ingredients: [],
+  instructions: [],
   notes: "",
 };
 
@@ -77,8 +79,8 @@ function NewRecipeInner() {
         name: result.name,
         sourceUrl,
         sourceServings: result.sourceServings ?? 2,
-        ingredientsText: result.ingredients.join("\n"),
-        instructionsText: result.instructions.join("\n"),
+        ingredients: result.ingredients,
+        instructions: result.instructions,
         notes: result.notes,
       });
       setStep("preview");
@@ -102,14 +104,14 @@ function NewRecipeInner() {
         name: draft.name,
         sourceUrl: draft.sourceUrl || null,
         sourceServings: draft.sourceServings,
-        ingredients: draft.ingredientsText
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        instructions: draft.instructionsText
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        ingredients: draft.ingredients
+          .map((row) => ({
+            name: row.name.trim(),
+            amount: row.amount.trim(),
+            isSection: row.isSection,
+          }))
+          .filter((row) => (row.isSection ? row.name : row.name || row.amount)),
+        instructions: draft.instructions.map((s) => s.trim()).filter(Boolean),
         notes: draft.notes || null,
         categoryIds,
       });
@@ -245,25 +247,17 @@ function NewRecipeInner() {
             />
           </div>
           <div className="field">
-            <label htmlFor="ingredients">材料（1行ずつ）</label>
-            <textarea
-              id="ingredients"
-              value={draft.ingredientsText}
-              onChange={(e) =>
-                setDraft({ ...draft, ingredientsText: e.target.value })
-              }
-              style={{ minHeight: 140 }}
+            <label>材料</label>
+            <IngredientListEditor
+              value={draft.ingredients}
+              onChange={(ingredients) => setDraft({ ...draft, ingredients })}
             />
           </div>
           <div className="field">
-            <label htmlFor="instructions">手順（1行ずつ）</label>
-            <textarea
-              id="instructions"
-              value={draft.instructionsText}
-              onChange={(e) =>
-                setDraft({ ...draft, instructionsText: e.target.value })
-              }
-              style={{ minHeight: 140 }}
+            <label>手順</label>
+            <StepListEditor
+              value={draft.instructions}
+              onChange={(instructions) => setDraft({ ...draft, instructions })}
             />
           </div>
           <div className="field">

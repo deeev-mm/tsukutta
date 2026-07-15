@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
+import { coerceIngredientLines } from "@tsukutta/shared";
 import {
   categories,
   cookLogRatings,
@@ -75,7 +76,7 @@ exportRoutes.get("/", async (c) => {
 
   const body = {
     exportedAt: new Date().toISOString(),
-    format: "tsukutta.backup.v1",
+    format: "tsukutta.backup.v2",
     family: family
       ? {
           name: family.name,
@@ -86,7 +87,7 @@ exportRoutes.get("/", async (c) => {
       id: r.id,
       name: r.name,
       sourceUrl: r.sourceUrl,
-      ingredients: parseJsonArray(r.ingredientsJson),
+      ingredients: coerceIngredientLines(JSON.parse(r.ingredientsJson || "[]")),
       instructions: parseJsonArray(r.instructionsJson),
       sourceServings: r.sourceServings,
       servingsLabel: r.servingsLabel,

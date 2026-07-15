@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { scaleIngredientRows } from "@tsukutta/shared";
+import { scaleIngredientLines } from "@tsukutta/shared";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type Recipe } from "@/lib/api";
@@ -44,7 +44,7 @@ function DetailInner() {
   const ingredientRows = useMemo(() => {
     if (!recipe) return [];
     const n = Math.max(1, Math.floor(displayServings) || 1);
-    return scaleIngredientRows(recipe.ingredients, n);
+    return scaleIngredientLines(recipe.ingredients, n);
   }, [recipe, displayServings]);
 
   async function onDelete() {
@@ -213,7 +213,7 @@ function DetailInner() {
             </thead>
             <tbody>
               {ingredientRows.map((row, i) =>
-                row.kind === "section" ? (
+                row.isSection ? (
                   <tr key={`s-${i}-${row.name}`} className={styles.sectionRow}>
                     <td colSpan={2}>{row.name}</td>
                   </tr>

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { and, asc, eq } from "drizzle-orm";
-import { scaleIngredientRows } from "@tsukutta/shared";
+import { coerceIngredientLines, scaleIngredientLines } from "@tsukutta/shared";
 import { recipes, shoppingListItems } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth } from "../lib/auth";
@@ -81,9 +81,9 @@ shoppingListRoutes.post("/from-recipe/:recipeId", async (c) => {
       ? Math.floor(body.servings)
       : (user.householdSize ?? 1);
 
-  const ingredients: string[] = JSON.parse(recipe.ingredientsJson || "[]");
-  const rows = scaleIngredientRows(ingredients, servings).filter(
-    (r) => r.kind === "item" && (r.name || r.amount),
+  const ingredients = coerceIngredientLines(JSON.parse(recipe.ingredientsJson || "[]"));
+  const rows = scaleIngredientLines(ingredients, servings).filter(
+    (r) => !r.isSection && (r.name || r.amount),
   );
 
   const ts = nowIso();

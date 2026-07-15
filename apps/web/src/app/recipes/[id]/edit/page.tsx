@@ -5,9 +5,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
+import { IngredientListEditor } from "@/components/IngredientListEditor";
+import { StepListEditor } from "@/components/StepListEditor";
 import { api, ApiError, type Category, type Recipe } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { scaleIngredients } from "@tsukutta/shared";
+import { scaleIngredientLines, type IngredientLine } from "@tsukutta/shared";
 
 export default function EditRecipePage() {
   return (
@@ -25,8 +27,8 @@ function EditInner() {
   const [name, setName] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [editServings, setEditServings] = useState(2);
-  const [ingredientsText, setIngredientsText] = useState("");
-  const [instructionsText, setInstructionsText] = useState("");
+  const [ingredients, setIngredients] = useState<IngredientLine[]>([]);
+  const [instructions, setInstructions] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [clearImage, setClearImage] = useState(false);
@@ -43,8 +45,8 @@ function EditInner() {
       setEditServings(servings);
       setName(recipe.name);
       setSourceUrl(recipe.sourceUrl ?? "");
-      setIngredientsText(scaleIngredients(recipe.ingredients, servings).join("\n"));
-      setInstructionsText(recipe.instructions.join("\n"));
+      setIngredients(scaleIngredientLines(recipe.ingredients, servings));
+      setInstructions(recipe.instructions);
       setNotes(recipe.notes ?? "");
       setCategoryIds(recipe.categories.map((c) => c.id));
     })();
@@ -70,14 +72,14 @@ function EditInner() {
         name,
         sourceUrl: sourceUrl || null,
         sourceServings: editServings,
-        ingredients: ingredientsText
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        instructions: instructionsText
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        ingredients: ingredients
+          .map((row) => ({
+            name: row.name.trim(),
+            amount: row.amount.trim(),
+            isSection: row.isSection,
+          }))
+          .filter((row) => (row.isSection ? row.name : row.name || row.amount)),
+        instructions: instructions.map((s) => s.trim()).filter(Boolean),
         notes: notes || null,
         clearImage: clearImage || undefined,
         categoryIds,
@@ -141,22 +143,12 @@ function EditInner() {
           />
         </div>
         <div className="field">
-          <label htmlFor="ingredients">材料</label>
-          <textarea
-            id="ingredients"
-            value={ingredientsText}
-            onChange={(e) => setIngredientsText(e.target.value)}
-            style={{ minHeight: 140 }}
-          />
+          <label>材料</label>
+          <IngredientListEditor value={ingredients} onChange={setIngredients} />
         </div>
         <div className="field">
-          <label htmlFor="instructions">手順</label>
-          <textarea
-            id="instructions"
-            value={instructionsText}
-            onChange={(e) => setInstructionsText(e.target.value)}
-            style={{ minHeight: 140 }}
-          />
+          <label>手順</label>
+          <StepListEditor value={instructions} onChange={setInstructions} />
         </div>
         <div className="field">
           <label htmlFor="notes">定番メモ</label>

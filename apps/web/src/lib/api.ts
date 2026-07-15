@@ -1,4 +1,6 @@
-import { GROQ_STORAGE_KEY, type SessionUser } from "@tsukutta/shared";
+import { GROQ_STORAGE_KEY, type IngredientLine, type SessionUser } from "@tsukutta/shared";
+
+export type { IngredientLine };
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
@@ -54,7 +56,7 @@ export type Recipe = {
   familyId: string;
   name: string;
   sourceUrl: string | null;
-  ingredients: string[];
+  ingredients: IngredientLine[];
   instructions: string[];
   sourceServings: number | null;
   servingsLabel: string | null;
@@ -330,7 +332,7 @@ export const api = {
       result: {
         name: string;
         sourceServings: number | null;
-        ingredients: string[];
+        ingredients: IngredientLine[];
         instructions: string[];
         notes: string;
       };

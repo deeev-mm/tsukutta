@@ -1,11 +1,25 @@
 import { Hono } from "hono";
 import { and, desc, eq, inArray, like, or } from "drizzle-orm";
-import { normalizeIngredientsToOneServing } from "@tsukutta/shared";
+import {
+  coerceIngredientLines,
+  normalizeIngredientLinesToOneServing,
+  type IngredientLine,
+} from "@tsukutta/shared";
 import { categories, cookLogs, recipeCategories, recipes } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireCookRole } from "../lib/auth";
 import { newId, nowIso, parseJsonArray, type Env } from "../lib/crypto";
 import { stripImageMetadata } from "../lib/strip-exif";
+
+function parseIngredientsJson(raw: string): IngredientLine[] {
+  let data: unknown;
+  try {
+    data = JSON.parse(raw || "[]");
+  } catch {
+    data = [];
+  }
+  return coerceIngredientLines(data);
+}
 
 export const recipeRoutes = new Hono<{
   Bindings: Env;
@@ -23,7 +37,7 @@ function serializeRecipe(
     familyId: r.familyId,
     name: r.name,
     sourceUrl: r.sourceUrl,
-    ingredients: parseJsonArray(r.ingredientsJson),
+    ingredients: parseIngredientsJson(r.ingredientsJson),
     instructions: parseJsonArray(r.instructionsJson),
     sourceServings: r.sourceServings,
     servingsLabel: r.servingsLabel,
@@ -158,7 +172,7 @@ recipeRoutes.post("/", async (c) => {
   const body = await c.req.json<{
     name?: string;
     sourceUrl?: string | null;
-    ingredients?: string[];
+    ingredients?: unknown[];
     instructions?: string[];
     sourceServings?: number | null;
     servingsLabel?: string | null;
@@ -175,8 +189,8 @@ recipeRoutes.post("/", async (c) => {
       ? Math.floor(body.sourceServings)
       : 1;
 
-  const ingredients = normalizeIngredientsToOneServing(
-    (body.ingredients ?? []).map(String).map((s) => s.trim()).filter(Boolean),
+  const ingredients = normalizeIngredientLinesToOneServing(
+    coerceIngredientLines(body.ingredients ?? []),
     sourceServings,
   );
   const instructions = (body.instructions ?? [])
@@ -233,7 +247,7 @@ recipeRoutes.patch("/:id", async (c) => {
   const body = await c.req.json<{
     name?: string;
     sourceUrl?: string | null;
-    ingredients?: string[];
+    ingredients?: unknown[];
     instructions?: string[];
     sourceServings?: number | null;
     servingsLabel?: string | null;
@@ -284,10 +298,10 @@ recipeRoutes.patch("/:id", async (c) => {
         : existing.sourceServings ?? 1;
     const rawIngredients =
       body.ingredients !== undefined
-        ? body.ingredients.map(String).map((s) => s.trim()).filter(Boolean)
-        : parseJsonArray(existing.ingredientsJson);
+        ? coerceIngredientLines(body.ingredients)
+        : parseIngredientsJson(existing.ingredientsJson);
     patch.ingredientsJson = JSON.stringify(
-      normalizeIngredientsToOneServing(rawIngredients, sourceServings),
+      normalizeIngredientLinesToOneServing(rawIngredients, sourceServings),
     );
     patch.sourceServings = sourceServings;
   }

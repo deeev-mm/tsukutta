@@ -1,9 +1,16 @@
 export type UserRole = "owner" | "cook" | "reviewer";
 
+/** 材料の1行。isSection のときは name が見出し文字列で amount は使わない */
+export type IngredientLine = {
+  name: string;
+  amount: string;
+  isSection?: boolean;
+};
+
 export type AiFormatResult = {
   name: string;
   sourceServings: number | null;
-  ingredients: string[];
+  ingredients: IngredientLine[];
   instructions: string[];
   notes: string;
 };
@@ -17,12 +24,6 @@ export type SessionUser = {
   isDemo: boolean;
   householdSize: number;
   familyName: string | null;
-};
-
-export type IngredientRow = {
-  kind: "item" | "section";
-  name: string;
-  amount: string;
 };
 
 export const GROQ_STORAGE_KEY = "tsukutta.groqApiKey";
@@ -68,34 +69,35 @@ export function scaleIngredientLine(line: string, factor: number): string {
   return `${line.slice(0, start)}${formatQuantity(scaled)}${line.slice(end)}`;
 }
 
-export function normalizeIngredientsToOneServing(
-  ingredients: string[],
-  sourceServings: number,
-): string[] {
-  if (!Number.isFinite(sourceServings) || sourceServings <= 1) {
-    return ingredients;
-  }
-  return ingredients.map((line) =>
-    scaleIngredientLine(line, 1 / sourceServings),
+/** 構造化された材料行の分量だけを倍率で換算する（見出し行はそのまま） */
+export function scaleIngredientLines(
+  lines: IngredientLine[],
+  factor: number,
+): IngredientLine[] {
+  if (!Number.isFinite(factor) || factor === 1 || factor <= 0) return lines;
+  return lines.map((line) =>
+    line.isSection || !line.amount
+      ? line
+      : { ...line, amount: scaleIngredientLine(line.amount, factor) },
   );
 }
 
-export function scaleIngredients(
-  ingredients: string[],
-  displayServings: number,
-): string[] {
-  if (!Number.isFinite(displayServings) || displayServings <= 0) {
-    return ingredients;
-  }
-  return ingredients.map((line) => scaleIngredientLine(line, displayServings));
+/** 入力時点の人前(sourceServings)から1人前に正規化する（DB保存用） */
+export function normalizeIngredientLinesToOneServing(
+  lines: IngredientLine[],
+  sourceServings: number,
+): IngredientLine[] {
+  if (!Number.isFinite(sourceServings) || sourceServings <= 1) return lines;
+  return scaleIngredientLines(lines, 1 / sourceServings);
 }
 
 /**
- * 材料リストを「材料名 / 使用量」行に整形。
- * AIが「材料名」「分量」を交互に出したケースも吸収する。
+ * 旧形式（材料1行=文字列）を構造化行に変換する。
+ * 過去に保存されたレシピの互換読み込み専用。AIが「材料名」「分量」を交互に
+ * 出したケースも吸収する。
  */
-export function toIngredientRows(ingredients: string[]): IngredientRow[] {
-  const rows: IngredientRow[] = [];
+function legacyParseIngredientText(ingredients: string[]): IngredientLine[] {
+  const rows: IngredientLine[] = [];
   const lines = ingredients.map((s) => s.trim()).filter(Boolean);
 
   for (let i = 0; i < lines.length; i++) {
@@ -103,7 +105,7 @@ export function toIngredientRows(ingredients: string[]): IngredientRow[] {
     const next = lines[i + 1];
 
     if (isSectionHeader(line)) {
-      rows.push({ kind: "section", name: line, amount: "" });
+      rows.push({ name: line, amount: "", isSection: true });
       continue;
     }
 
@@ -114,34 +116,34 @@ export function toIngredientRows(ingredients: string[]): IngredientRow[] {
       !looksLikeAmountOnly(line) &&
       looksLikeAmountOnly(next)
     ) {
-      rows.push({ kind: "item", name: line, amount: next });
+      rows.push({ name: line, amount: next });
       i += 1;
       continue;
     }
 
     const split = splitNameAmount(line);
-    rows.push({ kind: "item", name: split.name, amount: split.amount });
+    rows.push({ name: split.name, amount: split.amount });
   }
 
   return rows;
 }
 
-/** 表示用人前で使用量だけ換算した行 */
-export function scaleIngredientRows(
-  ingredients: string[],
-  displayServings: number,
-): IngredientRow[] {
-  const factor =
-    Number.isFinite(displayServings) && displayServings > 0
-      ? displayServings
-      : 1;
-  return toIngredientRows(ingredients).map((row) => {
-    if (row.kind === "section") return row;
-    return {
-      ...row,
-      amount: row.amount ? scaleIngredientLine(row.amount, factor) : "",
-    };
-  });
+/**
+ * DBやAPIから受け取った材料データ(unknown)を構造化行の配列にそろえる。
+ * 新形式(オブジェクト配列)はそのまま、旧形式(文字列配列)はヒューリスティックで変換する。
+ */
+export function coerceIngredientLines(raw: unknown): IngredientLine[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  if (typeof raw[0] === "string") {
+    return legacyParseIngredientText(raw as string[]);
+  }
+  return (raw as Record<string, unknown>[])
+    .map((o) => ({
+      name: String(o?.name ?? "").trim(),
+      amount: String(o?.amount ?? "").trim(),
+      isSection: Boolean(o?.isSection),
+    }))
+    .filter((row) => (row.isSection ? row.name : row.name || row.amount));
 }
 
 function isSectionHeader(line: string): boolean {

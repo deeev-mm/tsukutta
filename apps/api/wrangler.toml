@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "family-cook-log"
-database_id = "00000000-0000-0000-0000-000000000001"
+database_id = "d3d4d2a9-ed89-4ac4-9830-48ad6adf3d5f"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
@@ -14,6 +14,6 @@ binding = "IMAGES"
 bucket_name = "family-cook-log-images"
 
 [vars]
-CORS_ALLOWED_ORIGINS = "http://localhost:3000"
-APP_BASE_URL = "http://localhost:3000"
+CORS_ALLOWED_ORIGINS = "https://tsukutta-web.deeev-work.workers.dev"
+APP_BASE_URL = "https://tsukutta-web.deeev-work.workers.dev"
 SESSION_COOKIE_NAME = "tsukutta_session"

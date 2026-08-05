@@ -10,6 +10,7 @@ import type { AppVariables } from "../lib/auth";
 import { requireAuth, requireCookRole } from "../lib/auth";
 import { newId, nowIso, parseJsonArray, type Env } from "../lib/crypto";
 import { stripImageMetadata } from "../lib/strip-exif";
+import { cloudinaryDeliveryUrl, deleteImage, uploadImage } from "../lib/cloudinary";
 
 function parseIngredientsJson(raw: string): IngredientLine[] {
   let data: unknown;
@@ -283,7 +284,7 @@ recipeRoutes.patch("/:id", async (c) => {
   if (body.clearImage) {
     if (existing.imageKey) {
       try {
-        await c.env.IMAGES.delete(existing.imageKey);
+        await deleteImage(c.env, existing.imageKey);
       } catch {
         /* ignore */
       }
@@ -351,7 +352,7 @@ recipeRoutes.delete("/:id", async (c) => {
 
   if (existing.imageKey) {
     try {
-      await c.env.IMAGES.delete(existing.imageKey);
+      await deleteImage(c.env, existing.imageKey);
     } catch {
       /* ignore */
     }
@@ -411,25 +412,13 @@ recipeRoutes.post("/:id/image", async (c) => {
     return c.json({ error: "画像は5MB以下にしてください" }, 400);
   }
 
-  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-  const key = `families/${user.familyId}/recipes/${id}.${ext}`;
-
-  if (existing.imageKey && existing.imageKey !== key) {
-    try {
-      await c.env.IMAGES.delete(existing.imageKey);
-    } catch {
-      /* ignore */
-    }
-  }
-
+  const publicId = `families/${user.familyId}/recipes/${id}`;
   const cleaned = stripImageMetadata(await file.arrayBuffer(), file.type);
-  await c.env.IMAGES.put(key, cleaned, {
-    httpMetadata: { contentType: file.type },
-  });
+  await uploadImage(c.env, publicId, cleaned, file.type);
 
   await db
     .update(recipes)
-    .set({ imageKey: key, updatedAt: nowIso() })
+    .set({ imageKey: publicId, updatedAt: nowIso() })
     .where(eq(recipes.id, id));
 
   const row = await db.select().from(recipes).where(eq(recipes.id, id)).get();
@@ -447,11 +436,5 @@ recipeRoutes.get("/:id/image", async (c) => {
     .get();
   if (!existing?.imageKey) return c.json({ error: "画像がありません" }, 404);
 
-  const obj = await c.env.IMAGES.get(existing.imageKey);
-  if (!obj) return c.json({ error: "画像がありません" }, 404);
-
-  const headers = new Headers();
-  obj.writeHttpMetadata(headers);
-  headers.set("Cache-Control", "private, max-age=3600");
-  return new Response(obj.body, { headers });
+  return c.redirect(cloudinaryDeliveryUrl(c.env, existing.imageKey), 302);
 });

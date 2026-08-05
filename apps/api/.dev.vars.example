@@ -1,2 +1,6 @@
 # Local secrets for wrangler (optional)
 # Groq APIキーはフロントの localStorage に保存するため、サーバー側キーは不要です。
+
+# Cloudinary (画像アップロード用)。ローカル開発でも実際のCloudinaryアカウントの値を使う。
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=

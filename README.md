@@ -17,7 +17,6 @@
 |---|---|---|
 | デモ Owner（調理） | `demo` | `demo1234` |
 | デモ Reviewer（評価） | `demoreviewer` | `demo1234` |
-| Admin | `admin` | `demo1234` |（`/admin/login`）
 
 デモでもレシピ新規作成（AI整形）まで一通り操作できます。AI整形・AIおすすめの利用には、設定画面で自分の Groq APIキー（無料枠）を登録してください（[Groq Console](https://console.groq.com/keys)）。
 

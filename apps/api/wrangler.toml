@@ -9,11 +9,8 @@ database_name = "family-cook-log"
 database_id = "4b235573-b4ff-40f1-9818-7926cee421d5"
 migrations_dir = "migrations"
 
-[[r2_buckets]]
-binding = "IMAGES"
-bucket_name = "family-cook-log-images"
-
 [vars]
 CORS_ALLOWED_ORIGINS = "https://tsukutta-web.deeev-work.workers.dev"
 APP_BASE_URL = "https://tsukutta-web.deeev-work.workers.dev"
 SESSION_COOKIE_NAME = "tsukutta_session"
+CLOUDINARY_CLOUD_NAME = "bpwmajyk"

@@ -1,6 +1,8 @@
 export type Env = {
   DB: D1Database;
-  IMAGES: R2Bucket;
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
   CORS_ALLOWED_ORIGINS: string;
   APP_BASE_URL: string;
   SESSION_COOKIE_NAME: string;

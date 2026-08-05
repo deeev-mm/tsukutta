@@ -114,7 +114,7 @@ Phase 2: 必要なら親が追加アカウントを発行
 | DB | Cloudflare D1（SQLite互換） | |
 | ORM | Drizzle | スキーマは `apps/api` |
 | 共有 | `@tsukutta/shared` | 分量換算・材料行パース等 |
-| 画像 | Cloudflare R2 | レシピサムネイル（任意・1枚） |
+| 画像 | Cloudinary | レシピサムネイル（任意・1枚）。アップロード時に自動リサイズ+WebP変換 |
 | AI整形 | Groq API（デフォルト `llama-3.1-8b-instant`） | コピペ → 構造化JSON。キーは localStorage（§3.3） |
 | デプロイ | Pages + Workers | 無料枠優先 |
 | パッケージ管理 | pnpm workspaces | ルートで `pnpm dev` |
@@ -128,7 +128,7 @@ Next.js (UI) … 日本語のみ / モバイル優先
    ▼
 Hono (Workers)
    ├── D1 … Family / User / Recipe / CookLog / Rating / …
-   └── R2 … レシピサムネイル
+   └── Cloudinary … レシピサムネイル（署名付きアップロード/削除、配信はCDN直リンクへリダイレクト）
 ```
 
 ※ Groq キーはサーバーに永続保存しない。整形時だけクライアントから都度送る。
@@ -238,7 +238,7 @@ Groq に送ったテキストは、提供元側の仕組みで処理・学習等
 | | **作った記録（CookLog）への写真アップロード**（対象外） |
 | | レシピへの複数枚ギャラリー（対象外） |
 
-画像の本線は **ユーザーアップロード → R2保存（recipes.image_key 最大1本）**。  
+画像の本線は **ユーザーアップロード → Cloudinary保存（recipes.image_key に public_id を最大1本）**。  
 **サムネなしでもレシピ保存可**（任意）。
 
 ### 3.5 メモの二層（定番メモ と その回の一言）
@@ -632,7 +632,7 @@ Admin はシード1アカウントで可。家庭の日常運用・レシピ中�
 | 真偽値 | `INTEGER`（0/1） |
 | 配列 | `TEXT` に JSON 文字列（`ingredients_json` 等） |
 | テナント | 業務テーブルは原則 `family_id` 必須。クエリは必ず家族スコープ |
-| 画像本体 | DBに載せない。R2 キーのみ保存 |
+| 画像本体 | DBに載せない。Cloudinaryの public_id のみ保存 |
 | パスワード | `password_hash` のみ。平文・可逆暗号禁止 |
 
 ### ER図
@@ -803,7 +803,7 @@ INDEX:
 | source_servings | INTEGER | YES | CHECK >= 1 | 登録・編集時に入力した人数（正規化の分母の記録）。NULL可 |
 | servings_label | TEXT | YES | | 「2〜3人分」等 |
 | notes | TEXT | YES | | 改善メモ |
-| image_key | TEXT | YES | | R2 object key |
+| image_key | TEXT | YES | | Cloudinary public_id |
 | tags_json | TEXT | NO | DEFAULT '[]' | string[] JSON |
 | is_hall_of_fame | INTEGER | NO | DEFAULT 0 | 殿堂 |
 | is_archived | INTEGER | NO | DEFAULT 0 | 1=一覧から隠す（ログあり削除時など） |
@@ -964,7 +964,7 @@ INDEX: `idx_shopping_list_family_id` ON `shopping_list_items(family_id, is_check
 | データ | 置き場 |
 |---|---|
 | Groq APIキー（実運用・デモ） | localStorage のみ（テーブルなし。サーバー非永続） |
-| 画像バイナリ | R2 |
+| 画像バイナリ | Cloudinary |
 | 換算後（displayServings 人分）の材料 | 保存しない（表示時に 1人前 × displayServings） |
 
 ### 削除ポリシー
@@ -1294,7 +1294,7 @@ Owner ホームの第1ビューは散らさない。主CTAは「レシピを残�
 |---|---|
 | 出典URL | 参照用に保存・表示 |
 | ユーザーが入力/コピペした本文 | 個人・家族用の自分コピーとしてDB保存 |
-| 画像 | ユーザーがアップロードしたレシピサムネのみR2へ（任意） |
+| 画像 | ユーザーがアップロードしたレシピサムネのみCloudinaryへ（任意） |
 | サイトからの自動取得 | しない |
 | 外部公開 | しない（デモログイン情報の README 記載は可） |
 | AI整形に渡すテキスト | Groq に送信。学習等の可能性あり → **学習されてよい内容のみ**（UI注意必須） |
@@ -1311,9 +1311,9 @@ Owner ホームの第1ビューは散らさない。主CTAは「レシピを残�
 | UI言語 | **日本語のみ** |
 | レイアウト | **モバイル優先**（スマホで登録・閲覧が主） |
 | レシピ保存 | スマホから無理なく完了できること（AI整形成功が前提） |
-| 画像 | サムネ任意。アップロード時リサイズ（長辺目安 1200px / WebP等） |
+| 画像 | サムネ任意。アップロード時リサイズ（長辺1200px・WebP変換、Cloudinaryの変換機能で実施） |
 | 規模 | 家庭利用（レシピ数千・ログ数万で余裕） |
-| コスト | Cloudflare無料枠 + Groq無料枠（制限・クォータに注意） |
+| コスト | Cloudflare無料枠 + Groq無料枠 + Cloudinary無料枠（制限・クォータに注意） |
 | プライバシー | 家族内利用。公開機能なし |
 
 ### 9.1 デプロイ・CORS・環境変数（必読）
@@ -1348,6 +1348,8 @@ https://api.xxx.workers.dev  （Hono）
 | `CORS_ALLOWED_ORIGINS` | Workers | 許可する UI の Origin（カンマ区切り可）。例: `https://tsukutta.pages.dev,http://localhost:3000` |
 | `APP_BASE_URL` | Workers / Pages | アプリ本体 URL（リダイレクト・Cookie 用） |
 | `NEXT_PUBLIC_API_BASE_URL` | Pages（公開可） | フロントから叩く API のベース URL |
+| `CLOUDINARY_CLOUD_NAME` | Workers（`[vars]`、非秘匿） | Cloudinaryのcloud name。配信URL組み立てに使用 |
+| `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Workers（`wrangler secret put`、秘匿） | 署名付きアップロード/削除に使用。リポジトリにコミットしない |
 
 注意:
 - `CORS_ALLOWED_ORIGINS` に `*` を安易に使わない（特に Cookie 認証時）
@@ -1517,3 +1519,4 @@ https://api.xxx.workers.dev  （Hono）
 | 0.8.3 | サービス名表記を「家庭料理ログ」から **tsukutta** に統一（ヘッダー・ログイン/登録・Admin・PWA manifest・タブタイトル） |
 | 0.8.4 | 今日のご飯提案・投票機能を追加（MealProposal/Candidate/Vote）。調理者が候補を出し家族全員が投票、調理者/Ownerが決定。決定した献立はホームに表示され買い物リスト追加・「作った」記録に接続 |
 | 0.8.5 | 「AIにおすすめを聞く」を調理者（Owner/Cook）限定に変更。Reviewerには非表示・APIも403で拒否 |
+| 0.8.6 | 画像ストレージを Cloudflare R2 から Cloudinary に変更（R2は無料枠でもアカウントへのカード登録が必須のため）。アップロード時に自動リサイズ（長辺1200px）+WebP変換を追加。配信はAPIルートからCloudinary CDNへの302リダイレクト |

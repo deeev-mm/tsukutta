@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "family-cook-log"
-database_id = "d3d4d2a9-ed89-4ac4-9830-48ad6adf3d5f"
+database_id = "4b235573-b4ff-40f1-9818-7926cee421d5"
 migrations_dir = "migrations"
 
 [[r2_buckets]]

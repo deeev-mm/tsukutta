@@ -3,9 +3,10 @@ import type { Env } from "./crypto";
 const UPLOAD_TRANSFORMATION = "c_limit,f_webp,h_1200,q_auto,w_1200";
 const DELIVERY_FORMAT = "webp";
 
-async function sha1Hex(input: string): Promise<string> {
+/** Cloudinaryへの署名。新しいアカウントはSHA-256署名が必須のため、SHA-1ではなくSHA-256を使う。 */
+async function signHex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
-  const hash = await crypto.subtle.digest("SHA-1", data);
+  const hash = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -36,7 +37,7 @@ export async function uploadImage(
       .sort()
       .map((k) => `${k}=${paramsToSign[k as keyof typeof paramsToSign]}`)
       .join("&") + env.CLOUDINARY_API_SECRET;
-  const signature = await sha1Hex(signString);
+  const signature = await signHex(signString);
 
   const form = new FormData();
   form.set("file", new Blob([file], { type: contentType }));
@@ -61,7 +62,7 @@ export async function uploadImage(
 export async function deleteImage(env: Env, publicId: string): Promise<void> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signString = `public_id=${publicId}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`;
-  const signature = await sha1Hex(signString);
+  const signature = await signHex(signString);
 
   const form = new FormData();
   form.set("api_key", env.CLOUDINARY_API_KEY);

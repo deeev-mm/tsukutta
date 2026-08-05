@@ -174,6 +174,34 @@ authRoutes.get("/me", requireAuth, async (c) => {
   return c.json({ user: c.get("user") });
 });
 
+authRoutes.post("/password", requireAuth, async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json<{ currentPassword?: string; newPassword?: string }>();
+  const currentPassword = body.currentPassword ?? "";
+  const newPassword = body.newPassword ?? "";
+
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return c.json(
+      { error: `パスワードは${MIN_PASSWORD_LENGTH}文字以上にしてください` },
+      400,
+    );
+  }
+
+  const db = c.get("db");
+  const row = await db.select().from(users).where(eq(users.id, user.id)).get();
+  if (!row) return c.json({ error: "ユーザーが見つかりません" }, 404);
+
+  const ok = await verifyPassword(currentPassword, row.passwordHash);
+  if (!ok) return c.json({ error: "現在のパスワードが違います" }, 401);
+
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(newPassword), updatedAt: nowIso() })
+    .where(eq(users.id, user.id));
+
+  return c.json({ ok: true });
+});
+
 async function issueSession(c: Context<App>, user: SessionUser) {
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
   const token = [...tokenBytes]

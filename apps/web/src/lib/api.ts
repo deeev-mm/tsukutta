@@ -484,6 +484,17 @@ export const api = {
       method: "POST",
       json: { candidateId },
     }),
+  requestMealProposalCandidate: (recipeId: string) =>
+    request<{ proposal: MealProposal }>("/api/v1/meal-proposals/request", {
+      method: "POST",
+      json: { recipeId },
+    }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: boolean }>("/api/v1/auth/password", {
+      method: "POST",
+      json: { currentPassword, newPassword },
+    }),
 
   // --- Admin ---
   adminLogin: (loginId: string, password: string) =>

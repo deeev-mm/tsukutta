@@ -150,6 +150,98 @@ mealProposalRoutes.post("/", async (c) => {
   return c.json({ proposal: await serializeProposal(db, proposal!, user.id) }, 201);
 });
 
+mealProposalRoutes.post("/request", async (c) => {
+  const user = c.get("user");
+  const db = c.get("db");
+  const body = await c.req.json<{ recipeId?: string }>();
+  const recipeId = body.recipeId?.trim();
+  if (!recipeId) return c.json({ error: "レシピを指定してください" }, 400);
+
+  const recipe = await db
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), eq(recipes.familyId, user.familyId), eq(recipes.isArchived, 0)))
+    .get();
+  if (!recipe) return c.json({ error: "レシピが見つかりません" }, 404);
+
+  const forDate = todayYmd();
+  const ts = nowIso();
+
+  let proposal = await db
+    .select()
+    .from(mealProposals)
+    .where(and(eq(mealProposals.familyId, user.familyId), eq(mealProposals.forDate, forDate)))
+    .get();
+
+  if (!proposal) {
+    const proposalId = newId();
+    await db.insert(mealProposals).values({
+      id: proposalId,
+      familyId: user.familyId,
+      forDate,
+      status: "open",
+      decidedRecipeId: null,
+      decidedAt: null,
+      createdByUserId: user.id,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+    proposal = await db.select().from(mealProposals).where(eq(mealProposals.id, proposalId)).get();
+  }
+  if (proposal!.status !== "open") {
+    return c.json({ error: "本日の献立はすでに決定済みです" }, 409);
+  }
+
+  let candidate = await db
+    .select()
+    .from(mealProposalCandidates)
+    .where(
+      and(
+        eq(mealProposalCandidates.proposalId, proposal!.id),
+        eq(mealProposalCandidates.recipeId, recipeId),
+      ),
+    )
+    .get();
+  if (!candidate) {
+    const candidateId = newId();
+    await db.insert(mealProposalCandidates).values({
+      id: candidateId,
+      proposalId: proposal!.id,
+      recipeId,
+      addedByUserId: user.id,
+      createdAt: ts,
+    });
+    candidate = await db
+      .select()
+      .from(mealProposalCandidates)
+      .where(eq(mealProposalCandidates.id, candidateId))
+      .get();
+  }
+
+  const existingVote = await db
+    .select({ id: mealProposalVotes.id })
+    .from(mealProposalVotes)
+    .where(and(eq(mealProposalVotes.proposalId, proposal!.id), eq(mealProposalVotes.userId, user.id)))
+    .get();
+  if (existingVote) {
+    await db
+      .update(mealProposalVotes)
+      .set({ candidateId: candidate!.id, updatedAt: ts })
+      .where(eq(mealProposalVotes.id, existingVote.id));
+  } else {
+    await db.insert(mealProposalVotes).values({
+      id: newId(),
+      proposalId: proposal!.id,
+      candidateId: candidate!.id,
+      userId: user.id,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
+  return c.json({ proposal: await serializeProposal(db, proposal!, user.id) }, 201);
+});
+
 async function loadOwnProposal(
   db: ReturnType<typeof import("../db/client").createDb>,
   familyId: string,

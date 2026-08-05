@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { coerceIngredientLines, scaleIngredientLines } from "@tsukutta/shared";
 import { recipes, shoppingListItems } from "../db/schema";
 import type { AppVariables } from "../lib/auth";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireCookRole } from "../lib/auth";
 import { newId, nowIso, type Env } from "../lib/crypto";
 
 export const shoppingListRoutes = new Hono<{
@@ -38,6 +38,9 @@ shoppingListRoutes.get("/", async (c) => {
 
 shoppingListRoutes.post("/", async (c) => {
   const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
   const db = c.get("db");
   const body = await c.req.json<{ name?: string }>();
   const name = (body.name ?? "").trim();
@@ -61,6 +64,9 @@ shoppingListRoutes.post("/", async (c) => {
 // レシピの材料をまとめて買い物リストへ追加(人前は任意。既定はレシピの標準)
 shoppingListRoutes.post("/from-recipe/:recipeId", async (c) => {
   const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
   const db = c.get("db");
   const recipeId = c.req.param("recipeId");
   const body = await c.req
@@ -114,6 +120,9 @@ shoppingListRoutes.post("/from-recipe/:recipeId", async (c) => {
 
 shoppingListRoutes.delete("/checked", async (c) => {
   const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
   const db = c.get("db");
   await db
     .delete(shoppingListItems)
@@ -123,6 +132,9 @@ shoppingListRoutes.delete("/checked", async (c) => {
 
 shoppingListRoutes.patch("/:id", async (c) => {
   const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
   const db = c.get("db");
   const id = c.req.param("id");
   const existing = await db
@@ -150,6 +162,9 @@ shoppingListRoutes.patch("/:id", async (c) => {
 
 shoppingListRoutes.delete("/:id", async (c) => {
   const user = c.get("user");
+  const denied = requireCookRole(user);
+  if (denied) return c.json({ error: denied }, 403);
+
   const db = c.get("db");
   const id = c.req.param("id");
   const existing = await db

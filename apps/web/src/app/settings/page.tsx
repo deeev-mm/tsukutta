@@ -209,6 +209,80 @@ function FamilyMembers() {
   );
 }
 
+function ChangePasswordPanel() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    if (newPassword !== confirmPassword) {
+      setError("新しいパスワードが一致しません");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setMessage("パスワードを変更しました");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "変更に失敗しました");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="panel" style={{ marginTop: 16 }} onSubmit={onSubmit}>
+      <h2>パスワード変更</h2>
+      <div className="field">
+        <label htmlFor="currentPassword">現在のパスワード</label>
+        <input
+          id="currentPassword"
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="newPassword">新しいパスワード（4文字以上）</label>
+        <input
+          id="newPassword"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          minLength={4}
+          required
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="confirmPassword">新しいパスワード（確認）</label>
+        <input
+          id="confirmPassword"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          minLength={4}
+          required
+        />
+      </div>
+      {error ? <p className="error">{error}</p> : null}
+      {message ? <p className="hint">{message}</p> : null}
+      <button className="btn" disabled={busy}>
+        {busy ? "変更中…" : "パスワードを変更する"}
+      </button>
+    </form>
+  );
+}
+
 function CategoryMaster() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [busy, setBusy] = useState(true);
@@ -453,105 +527,111 @@ function SettingsInner() {
         {user?.isDemo ? " ・デモ Family" : ""}
       </p>
 
-      {user?.role === "owner" ? <FamilyMembers /> : null}
-      {user?.role === "owner" || user?.role === "cook" ? <CategoryMaster /> : null}
+      {user?.role === "reviewer" ? (
+        <ChangePasswordPanel />
+      ) : (
+        <>
+          {user?.role === "owner" ? <FamilyMembers /> : null}
+          {user?.role === "owner" || user?.role === "cook" ? <CategoryMaster /> : null}
 
-      <form className="panel" style={{ marginTop: 16 }} onSubmit={onSaveFamily}>
-        <h2>家族構成</h2>
-        <div className="field">
-          <label htmlFor="familyName">家族の呼び名</label>
-          <input
-            id="familyName"
-            value={familyName}
-            onChange={(e) => setFamilyName(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="householdSize">家族人数（分量換算の標準）</label>
-          <input
-            id="householdSize"
-            type="number"
-            min={1}
-            value={householdSize}
-            onChange={(e) => setHouseholdSize(Number(e.target.value) || 1)}
-            required
-          />
-        </div>
-        <button className="btn" disabled={busy || user?.role !== "owner"}>
-          保存
-        </button>
-      </form>
+          <form className="panel" style={{ marginTop: 16 }} onSubmit={onSaveFamily}>
+            <h2>家族構成</h2>
+            <div className="field">
+              <label htmlFor="familyName">家族の呼び名</label>
+              <input
+                id="familyName"
+                value={familyName}
+                onChange={(e) => setFamilyName(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="householdSize">家族人数（分量換算の標準）</label>
+              <input
+                id="householdSize"
+                type="number"
+                min={1}
+                value={householdSize}
+                onChange={(e) => setHouseholdSize(Number(e.target.value) || 1)}
+                required
+              />
+            </div>
+            <button className="btn" disabled={busy || user?.role !== "owner"}>
+              保存
+            </button>
+          </form>
 
-      <form className="panel" style={{ marginTop: 16 }} onSubmit={onSaveGroq}>
-        <h2>Groq APIキー</h2>
-        <p className="hint" style={{ marginBottom: 12 }}>
-          キーはサーバーに送って保存せず、このブラウザの{" "}
-          <code>localStorage</code> にだけ残します。
-          {hasKey ? " （この端末に保存済み）" : " （未設定）"}
-          {user?.isDemo ? " ※デモ Family も同じ扱いです。" : ""}
-        </p>
-        <p className="hint" style={{ marginBottom: 12 }}>
-          キーの発行:{" "}
-          <a href={GROQ_API_KEY_URL} target="_blank" rel="noreferrer">
-            Groq Console（APIキー）
-          </a>
-        </p>
-        <div className="notice">
-          AI整形では入力したテキストを Groq API に送信します。
-          提供元側で処理・学習等に利用される可能性があります。
-          <strong>
-            個人情報・秘密にしたい内容・学習されて困る文章は入力しないでください。
-          </strong>
-          <br />
-          共用PCでは localStorage にキーが残る点にご注意ください。
-        </div>
-        <div className="field">
-          <label htmlFor="groq">APIキー</label>
-          <input
-            id="groq"
-            type="password"
-            value={groqDraft}
-            onChange={(e) => setGroqDraft(e.target.value)}
-            placeholder="gsk_..."
-            autoComplete="off"
-          />
-        </div>
-        <div className="row">
-          <button className="btn" type="submit">
-            localStorage に保存
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              clear();
-              setGroqDraft("");
-              setMessage("APIキーを localStorage から削除しました");
-            }}
-          >
-            削除
-          </button>
-        </div>
-      </form>
+          <form className="panel" style={{ marginTop: 16 }} onSubmit={onSaveGroq}>
+            <h2>Groq APIキー</h2>
+            <p className="hint" style={{ marginBottom: 12 }}>
+              キーはサーバーに送って保存せず、このブラウザの{" "}
+              <code>localStorage</code> にだけ残します。
+              {hasKey ? " （この端末に保存済み）" : " （未設定）"}
+              {user?.isDemo ? " ※デモ Family も同じ扱いです。" : ""}
+            </p>
+            <p className="hint" style={{ marginBottom: 12 }}>
+              キーの発行:{" "}
+              <a href={GROQ_API_KEY_URL} target="_blank" rel="noreferrer">
+                Groq Console（APIキー）
+              </a>
+            </p>
+            <div className="notice">
+              AI整形では入力したテキストを Groq API に送信します。
+              提供元側で処理・学習等に利用される可能性があります。
+              <strong>
+                個人情報・秘密にしたい内容・学習されて困る文章は入力しないでください。
+              </strong>
+              <br />
+              共用PCでは localStorage にキーが残る点にご注意ください。
+            </div>
+            <div className="field">
+              <label htmlFor="groq">APIキー</label>
+              <input
+                id="groq"
+                type="password"
+                value={groqDraft}
+                onChange={(e) => setGroqDraft(e.target.value)}
+                placeholder="gsk_..."
+                autoComplete="off"
+              />
+            </div>
+            <div className="row">
+              <button className="btn" type="submit">
+                localStorage に保存
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  clear();
+                  setGroqDraft("");
+                  setMessage("APIキーを localStorage から削除しました");
+                }}
+              >
+                削除
+              </button>
+            </div>
+          </form>
 
-      <section className="panel" style={{ marginTop: 16 }}>
-        <h2>バックアップ</h2>
-        <p className="hint" style={{ marginBottom: 12 }}>
-          レシピ・調理記録・評価をJSONファイルとして書き出せます（画像本体は含みません）。
-        </p>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => {
-            setError("");
-            void api.downloadBackup().catch((err) => {
-              setError(err instanceof ApiError ? err.message : "バックアップの取得に失敗しました");
-            });
-          }}
-        >
-          JSONをダウンロード
-        </button>
-      </section>
+          <section className="panel" style={{ marginTop: 16 }}>
+            <h2>バックアップ</h2>
+            <p className="hint" style={{ marginBottom: 12 }}>
+              レシピ・調理記録・評価をJSONファイルとして書き出せます（画像本体は含みません）。
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setError("");
+                void api.downloadBackup().catch((err) => {
+                  setError(err instanceof ApiError ? err.message : "バックアップの取得に失敗しました");
+                });
+              }}
+            >
+              JSONをダウンロード
+            </button>
+          </section>
+        </>
+      )}
 
       {message ? <p className="hint" style={{ marginTop: 12 }}>{message}</p> : null}
       {error ? <p className="error">{error}</p> : null}

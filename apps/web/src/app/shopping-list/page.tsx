@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, ApiError, type ShoppingListItem } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 export default function ShoppingListPage() {
   return (
@@ -14,6 +15,8 @@ export default function ShoppingListPage() {
 }
 
 function ShoppingListInner() {
+  const { user } = useAuth();
+  const isReviewer = user?.role === "reviewer";
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [busy, setBusy] = useState(true);
   const [name, setName] = useState("");
@@ -78,27 +81,31 @@ function ShoppingListInner() {
     <AppShell title="買い物リスト">
       <h1 style={{ marginTop: 12 }}>買い物リスト</h1>
       <p className="hint" style={{ marginBottom: 16 }}>
-        家族で共有される1本のリストです。レシピ詳細から材料をまとめて追加できます。
+        {isReviewer
+          ? "家族で共有される買い物リストです。追加・削除・チェックは調理者が行います。"
+          : "家族で共有される1本のリストです。レシピ詳細から材料をまとめて追加できます。"}
       </p>
 
-      <form className="row" onSubmit={onAdd} style={{ marginBottom: 16 }}>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="品目を追加（例: 牛乳）"
-          style={{
-            flex: 1,
-            minWidth: 160,
-            border: "1px solid var(--line)",
-            borderRadius: 12,
-            padding: "12px 14px",
-            background: "rgba(255,255,255,0.85)",
-          }}
-        />
-        <button className="btn" type="submit">
-          追加
-        </button>
-      </form>
+      {!isReviewer ? (
+        <form className="row" onSubmit={onAdd} style={{ marginBottom: 16 }}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="品目を追加（例: 牛乳）"
+            style={{
+              flex: 1,
+              minWidth: 160,
+              border: "1px solid var(--line)",
+              borderRadius: 12,
+              padding: "12px 14px",
+              background: "rgba(255,255,255,0.85)",
+            }}
+          />
+          <button className="btn" type="submit">
+            追加
+          </button>
+        </form>
+      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
 
@@ -115,21 +122,27 @@ function ShoppingListInner() {
               <ul className="clean stack">
                 {unchecked.map((item) => (
                   <li key={item.id} className="row" style={{ justifyContent: "space-between" }}>
-                    <label className="row" style={{ gap: 10, flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={item.isChecked}
-                        onChange={() => void onToggle(item)}
-                      />
+                    {isReviewer ? (
                       <span>{item.name}</span>
-                    </label>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => void onDelete(item)}
-                    >
-                      削除
-                    </button>
+                    ) : (
+                      <>
+                        <label className="row" style={{ gap: 10, flex: 1 }}>
+                          <input
+                            type="checkbox"
+                            checked={item.isChecked}
+                            onChange={() => void onToggle(item)}
+                          />
+                          <span>{item.name}</span>
+                        </label>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => void onDelete(item)}
+                        >
+                          削除
+                        </button>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -140,30 +153,40 @@ function ShoppingListInner() {
             <section className="panel">
               <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
                 <h2 style={{ margin: 0 }}>買った物</h2>
-                <button type="button" className="btn btn-secondary" onClick={() => void onClearChecked()}>
-                  まとめて削除
-                </button>
+                {!isReviewer ? (
+                  <button type="button" className="btn btn-secondary" onClick={() => void onClearChecked()}>
+                    まとめて削除
+                  </button>
+                ) : null}
               </div>
               <ul className="clean stack">
                 {checked.map((item) => (
                   <li key={item.id} className="row" style={{ justifyContent: "space-between" }}>
-                    <label className="row" style={{ gap: 10, flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={item.isChecked}
-                        onChange={() => void onToggle(item)}
-                      />
+                    {isReviewer ? (
                       <span className="muted" style={{ textDecoration: "line-through" }}>
                         {item.name}
                       </span>
-                    </label>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => void onDelete(item)}
-                    >
-                      削除
-                    </button>
+                    ) : (
+                      <>
+                        <label className="row" style={{ gap: 10, flex: 1 }}>
+                          <input
+                            type="checkbox"
+                            checked={item.isChecked}
+                            onChange={() => void onToggle(item)}
+                          />
+                          <span className="muted" style={{ textDecoration: "line-through" }}>
+                            {item.name}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => void onDelete(item)}
+                        >
+                          削除
+                        </button>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>

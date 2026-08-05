@@ -80,8 +80,8 @@ function HomeInner() {
             <Link href="/timeline" className="btn btn-block">
               記録を見て評価する
             </Link>
-            <Link href="/rankings" className="btn btn-secondary btn-block">
-              見返しを見る
+            <Link href="/recipes" className="btn btn-secondary btn-block">
+              レシピを探す
             </Link>
           </>
         ) : (
@@ -134,7 +134,7 @@ function HomeInner() {
       </section>
       ) : null}
 
-      {recs.length > 0 ? (
+      {user?.role !== "reviewer" && recs.length > 0 ? (
         <section className="panel" style={{ marginBottom: 16 }}>
           <div className="row" style={{ justifyContent: "space-between" }}>
             <h2 style={{ margin: 0 }}>また作るなら</h2>
@@ -155,6 +155,7 @@ function HomeInner() {
         </section>
       ) : null}
 
+      {user?.role !== "reviewer" ? (
       <section className="panel" style={{ marginBottom: 16 }}>
         <h2>最近の記録</h2>
         {recentLogs.length === 0 ? (
@@ -175,7 +176,9 @@ function HomeInner() {
           </ul>
         )}
       </section>
+      ) : null}
 
+      {user?.role !== "reviewer" ? (
       <section className="panel">
         <h2>レシピ</h2>
         {recipes.length === 0 ? (
@@ -197,6 +200,7 @@ function HomeInner() {
           </ul>
         )}
       </section>
+      ) : null}
     </AppShell>
   );
 }

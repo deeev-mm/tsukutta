@@ -19,8 +19,8 @@ const SYSTEM = `あなたは家庭料理のレシピ整形アシスタントで�
 - notes はポイント等の一言。なければ空文字
 - JSON以外は出力しない`;
 
-/** Groq 無料枠で使いやすい高速モデル */
-const GROQ_MODEL = "llama-3.1-8b-instant";
+/** Groq 無料枠で使いやすい高速モデル（llama-3.1-8b-instant は2026-08-16に廃止のため移行） */
+const GROQ_MODEL = "openai/gpt-oss-20b";
 
 export class GroqApiError extends Error {
   status: number;
